@@ -10,7 +10,7 @@ const FIREBASE_CONFIG = {
 
 /* Google Drive උඩුගත කිරීම – Apps Script "Web app" URL එක මෙතැන දමන්න
    (https://script.google.com/macros/s/.../exec) */
-const DRIVE_API_URL = "https://script.google.com/macros/s/AKfycbyTJ8oQ1pOdMO8ZFCAsWCq1f3R4yAKEEvqFeXbMS_cXlpoDFqKJbtG0YPW2WdGa5Xdp/exec";
+const DRIVE_API_URL = "https://script.google.com/macros/s/AKfycbx3-51WgqrSMlFYRdNHe_q4vGS294QW-icLqxBorW5wCIIjxa7_E4Z7EDyAmBtS5Hi6/exec";
 
 /* ප්‍රධාන ඇඩ්මින් ගිණුම් (firestore.rules හි ද එකම ලිපිනය තිබිය යුතුයි) */
 const SUPER_ADMINS = ["sudanchamalka@gmail.com"];
