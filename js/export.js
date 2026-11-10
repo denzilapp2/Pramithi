@@ -1,6 +1,6 @@
 /* PDF / PPT / ලකුණු කොළ (මුල් ගොනුවේ කේතය, Firebase සඳහා සුළු වෙනස්කම් සහිතව) */
 /* ===== PDF සැදීම (cover page + ප්‍රමිති + අවශ්‍යතා + සාමාජිකයන් + සාක්ෂි + footer) ===== */
-let pUrls=[];
+let pUrls=[],IMGD={};
 const PU=b=>{const u=URL.createObjectURL(b);pUrls.push(u);return u};
 const fdate=s=>{const p=(s||'').split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:''};
 const fico=i=>/pdf/i.test(i.type)?'📕':/sheet|excel|csv/i.test(i.type)?'📊':/word|document/i.test(i.type)?'📝':i.kind==='vid'?'🎬':'📄';
@@ -22,7 +22,7 @@ function areaPDF(a,sn,td,yr){
  const mem=st.ms.length?`<div class="pp-mems">${st.ms.map(m=>`<div class="pp-mem"><div class="pp-av">${m.blob?`<img src="${PU(m.blob)}" alt="">`:esc((m.name||'').trim().charAt(0))}</div><b>${esc(m.name)}</b><small>${esc(m.role)}</small></div>`).join('')}</div>`:'<div class="pp-none">සාමාජිකයින් එක් කර නැත</div>';
  const crit=st.rows.map(r=>{
   const d=fdate(r.inf.d),t=(r.inf.t||'').trim();
-  const figs=r.list.map(i=>{const cap=esc(i.cap||'');return i.kind==='img'?`<figure class="pp-fig"><img src="${i.blob?PU(i.blob):esc(i.url)}" alt=""><figcaption>${cap}</figcaption></figure>`:`<figure class="pp-fig"><div class="pp-fl">${fico(i)}</div><figcaption>${cap}${cap?' · ':''}${esc(i.name)}</figcaption></figure>`}).join('');
+  const figs=r.list.map(i=>{const cap=esc(i.cap||'');return i.kind==='img'?`<figure class="pp-fig"><img src="${IMGD[i.id]||(i.blob?PU(i.blob):esc(i.url))}" alt=""><figcaption>${cap}</figcaption></figure>`:`<figure class="pp-fig"><div class="pp-fl">${fico(i)}</div><figcaption>${cap}${cap?' · ':''}${esc(i.name)}</figcaption></figure>`}).join('');
   return `<div class="pp-crit"><div class="pp-ch"><span class="pp-kn">${r.k}</span><span>${esc(r.t)}${r.pl?' – '+r.pl:''}</span></div><div class="pp-info"><div><b>📅 දිනය:</b> ${d||'—'}</div><div><b>📝 වැඩසටහන / සිද්ධිය:</b> <span class="pp-desc">${t?esc(t):'—'}</span></div></div>${figs?`<div class="pp-grid">${figs}</div>`:'<div class="pp-none">මෙම නිර්ණායකය සඳහා සාක්ෂි ගොනු එක් කර නැත</div>'}</div>`}).join('');
  const body=`<div class="pp-body" style="${cv}"><div class="pp-ah">${a.ic} ${a.n}. ${esc(a.name)}</div><div class="pp-h">📌 ප්‍රමිති</div>${a.std.map((x,i)=>`<div class="pp-li"><b>${i+1}.</b> ${esc(x)}</div>`).join('')}<div class="pp-h">📋 අවශ්‍යතා / විස්තර</div>${REQ[a.n].map((x,i)=>`<div class="pp-li"><b>${i+1}.</b> ${esc(x)}</div>`).join('')}<div class="pp-h">👥 සාමාජිකයන් (කණ්ඩායම)</div>${mem}<div class="pp-h">✅ නිර්ණායක අනුව සාක්ෂි</div>${crit}</div>`;
  return cover+wrapT(body,footHTML(sn,a.n+'. '+esc(a.name)))+(typeof sheetsHTML==='function'?sheetsHTML(a.n):'')}
@@ -31,16 +31,20 @@ async function makePDF(ns){
  const now=new Date(),yr=(($('#syear').value||'').trim()||now.getFullYear()),td=String(now.getDate()).padStart(2,'0')+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+now.getFullYear();
  const list=AREAS.filter(a=>ns.includes(a.n));if(!list.length)return;
  const single=list.length===1;
+ /* පින්තූර PPT එකේ මෙන්ම නැවත සකසා (≤1400px JPEG) PDF එකට දමන්න */
+ IMGD={};
+ const pics=items.filter(i=>i.kind==='img'&&i.blob&&ns.includes(i.area));
+ for(let k=0;k<pics.length;k+=4)await Promise.all(pics.slice(k,k+4).map(async i=>{const im=await pimg(i.blob);if(im)IMGD[i.id]='data:'+im.d}));
  let h='';
  if(!single){
   const idx=AREAS.map(a=>{const s=areaStat(a);return`<li>${a.ic} <b>${a.n}.</b> ${esc(a.name)} — ${s.done} / ${s.nc}</li>`}).join('');
   h+=coverHTML({c:'#2a4fb0',c2:'#e8b90f',badge:'සම්පූර්ණ සාක්ෂි ගොනුව',ic:'👩‍🏫',title:'ගුරු පුවරුව',sub:'ඇගයීම් ක්ෂේත්‍ර 8 ක් · සාක්ෂි සහිත නිර්ණායක',sn,yr,td,extra:`<ol class="pp-idx" style="list-style:none">${idx}</ol>`})}
  list.forEach(a=>h+=areaPDF(a,sn,td,yr));
  const root=$('#printRoot');root.innerHTML=h;
- await Promise.all([...root.querySelectorAll('img')].map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r})));
+ await Promise.all([...root.querySelectorAll('img')].map(i=>(i.complete?Promise.resolve():new Promise(r=>{i.onload=i.onerror=r})).then(()=>i.decode?i.decode().catch(()=>{}):0)));
  try{await document.fonts.ready}catch(e){}
  const old=document.title;document.title=single?`${yr} - ප්‍රමිතිය ${list[0].n} - ${list[0].name}`:`${yr} - ගුණාත්මක සාක්ෂි - සම්පූර්ණ ගොනුව`;
- const done=()=>{window.removeEventListener('afterprint',done);root.innerHTML='';pUrls.forEach(u=>URL.revokeObjectURL(u));pUrls=[];document.title=old};
+ const done=()=>{window.removeEventListener('afterprint',done);root.innerHTML='';pUrls.forEach(u=>URL.revokeObjectURL(u));pUrls=[];IMGD={};document.title=old};
  window.addEventListener('afterprint',done);
  setTimeout(()=>window.print(),80)}
 
@@ -144,4 +148,3 @@ function addSheets(){AREAS.forEach(a=>{const body=document.querySelector('#a'+a.
  d.querySelector('.pdfbtn').onclick=()=>printSheet(a.n);
  d.addEventListener('toggle',()=>{const w=d.querySelector('.sheetpages');if(d.open&&!w.children.length)w.innerHTML=(SHEETS[a.n]||[]).map(x=>`<img src="${x}" alt="" loading="lazy">`).join('')});
  body.insertBefore(d,body.querySelector('.pager'))})}
-
