@@ -81,12 +81,13 @@ function driveCall(payload,onPct){
   if(typeof DRIVE_API_URL==='undefined'||/^PASTE/.test(DRIVE_API_URL))return rej(new Error('js/firebase-config.js හි DRIVE_API_URL තවම සකසා නැත'));
   if(!auth||!auth.currentUser)return rej(new Error('පිවිසී නැත'));
   auth.currentUser.getIdToken().then(token=>{
-   const x=new XMLHttpRequest();x.open('POST',DRIVE_API_URL);x.setRequestHeader('Content-Type','text/plain;charset=utf-8');
-   if(onPct)x.upload.onprogress=e=>{if(e.lengthComputable)onPct(Math.min(99,Math.round(e.loaded/e.total*100)))};
-   x.onload=()=>{let j;try{j=JSON.parse(x.responseText)}catch(_){return rej(new Error('Drive සේවාවෙන් වැරදි පිළිතුරක් ලැබුණි (Web app “Anyone” ලෙස deploy කර ඇතිද?)'))}
-    j.ok?res(j):rej(new Error(j.error||'Drive දෝෂයකි'))};
-   x.onerror=()=>rej(new Error('අන්තර්ජාල සම්බන්ධතාව පරීක්ෂා කරන්න'));
-   x.send(JSON.stringify(Object.assign({},payload,{token})))}).catch(rej)})}
+   if(onPct)onPct(30);
+   /* fetch + text/plain = "සරල" CORS ඉල්ලීමක් (preflight නැත) – Apps Script සමඟ ක්‍රියා කරයි */
+   fetch(DRIVE_API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({},payload,{token}))})
+    .then(r=>r.text())
+    .then(t=>{let j;try{j=JSON.parse(t)}catch(_){return rej(new Error('Drive සේවාවෙන් වැරදි පිළිතුරක් ලැබුණි (Web app “Anyone” ලෙස deploy කර ඇතිද?)'))}
+     if(onPct)onPct(99);j.ok?res(j):rej(new Error(j.error||'Drive දෝෂයකි'))})
+    .catch(()=>rej(new Error('අන්තර්ජාල සම්බන්ධතාව පරීක්ෂා කරන්න')))}).catch(rej)})}
 async function upload(id,pk,slot,area,f){
  try{const b=await shrink(f),safe=f.name.replace(/[^\w.\-]+/g,'_').slice(-80),data=await b2b64(b);
   const j=await driveCall({action:'upload',area,name:safe,type:b.type||f.type||'application/octet-stream',data},p=>{if(UP[id])UP[id].pct=p;const e=document.getElementById('up'+id);if(e)e.textContent=p+'%'});
