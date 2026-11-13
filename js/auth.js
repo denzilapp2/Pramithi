@@ -27,7 +27,9 @@ function bindAuth(){
   if(mode==='up'&&!$('#aArea').value)return aerr('ඔබේ ප්‍රමිතිය තෝරන්න.');
   $('#aGo').disabled=true;aerr('');
   try{if(mode==='up'){pendingName=nm;pendingArea=+$('#aArea').value;await auth.createUserWithEmailAndPassword(mail,pw)}else await auth.signInWithEmailAndPassword(mail,pw)}
-  catch(x){aerr(errMsg(x))}finally{$('#aGo').disabled=false}};
+  catch(x){
+   if(mode==='up'&&x.code==='auth/email-already-in-use'){try{await auth.signInWithEmailAndPassword(mail,pw);return}catch(y){}}
+   aerr(errMsg(x))}finally{$('#aGo').disabled=false}};
  $('#aGoogle').onclick=async()=>{if(!SETUP_OK)return aerr('Firebase සැකසුම් ගොනුව තවම පුරවා නැත.');if(mode==='up'&&!$('#aArea').value)return aerr('පළමුව ඔබේ ප්‍රමිතිය තෝරන්න.');
   pendingArea=mode==='up'?+$('#aArea').value:0;aerr('');
   try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())}catch(x){if(x.code!=='auth/popup-closed-by-user'&&x.code!=='auth/cancelled-popup-request')aerr(errMsg(x))}};
