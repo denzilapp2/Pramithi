@@ -64,8 +64,9 @@ function listenUsers(U,er){U(fs.collection('users').onSnapshot(s=>{USERS=s.docs.
 let adminBound=false;
 function renderAdmin(soft){
  const root=$('#admin');if(!root||!isAdmin())return;
- if(root.hidden&&soft)return;                      // පෙනෙන්නේ නැතිනම් යාවත්කාලීන නොකරන්න
  const pend=USERS.filter(u=>u.status==='pending').length;
+ const nb=document.getElementById('navPend');if(nb){nb.hidden=!pend;nb.textContent=pend}
+ if(root.hidden&&soft)return;                      // පෙනෙන්නේ නැතිනම් යාවත්කාලීන නොකරන්න
  if(!root.dataset.ready){root.innerHTML=`<h3>🛡️ ඇඩ්මින් පැනලය</h3><div class="atab"><button data-at="marks">📊 ලකුණු යෙදීම</button><button data-at="users">👥 ගුරුවරු <span class="bdg" id="pendBdg" hidden></span></button></div><div id="adminBody"></div>`;root.dataset.ready=1}
  root.querySelectorAll('.atab button').forEach(b=>b.classList.toggle('on',b.dataset.at===adminTab));
  const pb=$('#pendBdg');pb.hidden=!pend;pb.textContent=pend;
