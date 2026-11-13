@@ -124,7 +124,7 @@ function sectionHTML(a){return `<section id="a${a.n}" style="--c:${a.c};--c2:${a
   </div></section>`}
 function build(){
  const AV=visAreas();
- $('#nav').innerHTML=AV.map(a=>`<a href="#a${a.n}" style="--c:${a.c}">${a.ic} ${a.n}. ${a.name} <span class="pc">0%</span></a>`).join('')+(isAdmin()?`<a href="#admin" style="--c:#6a5acd">🛡️ ඇඩ්මින් පැනලය</a>`:'');
+ $('#nav').innerHTML=AV.map(a=>`<a href="#a${a.n}" style="--c:${a.c}">${a.ic} ${a.n}. ${a.name} <span class="pc">0%</span></a>`).join('')+(isAdmin()?`<a href="#admin" style="--c:#6a5acd">🛡️ ඇඩ්මින් පැනලය <span class="pc" id="navPend" hidden></span></a>`:'');
  $('#areas').innerHTML=AV.map(sectionHTML).join('');
  if(!$('#fpick')){document.body.insertAdjacentHTML('beforeend','<input type="file" id="fpick" multiple hidden>');$('#fpick').onchange=e=>{if(pickK)fill(pickK,pickI,[...e.target.files]);e.target.value=''}}
  const A=isAdmin();
