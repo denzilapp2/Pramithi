@@ -3,7 +3,7 @@
    - ගුරුවරයා: ඊමේල්/මුරපදය හෝ Google → ඇඩ්මින් ප්‍රමිතියක් දුන් පසු පමණක් ප්‍රවේශය
    - ඇඩ්මින්: SUPER_ADMINS ලැයිස්තුවේ ඊමේල් (Google) හෝ ඇඩ්මින් විසින් ඇඩ්මින් ලෙස සකසන ලද අය
    ================================================================ */
-let auth=null,unsubMe=null,pendingName='',mode='in',curKey='';
+let auth=null,unsubMe=null,pendingName='',pendingArea=0,mode='in',curKey='';
 const SETUP_OK=!/^YOUR_/.test(FIREBASE_CONFIG.apiKey||'YOUR_');
 const AERR={
  'auth/invalid-credential':'ඊමේල් ලිපිනය හෝ මුරපදය වැරදියි.','auth/wrong-password':'මුරපදය වැරදියි.','auth/user-not-found':'මෙම ඊමේල් ලිපිනයෙන් ගිණුමක් නැත.',
@@ -15,18 +15,21 @@ const errMsg=e=>AERR[e&&e.code]||('දෝෂයක්: '+((e&&(e.code||e.message
 
 function screen(n){document.body.classList.remove('boot');$('#auth').hidden=n!=='auth';$('#wait').hidden=n!=='wait';$('#app').hidden=n!=='app'}
 function setMode(m){mode=m;document.querySelectorAll('.atabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===m));
- $('#aName').hidden=m!=='up';$('#aGo').textContent=m==='up'?'ලියාපදිංචි වන්න':'පිවිසෙන්න';$('#aPass').autocomplete=m==='up'?'new-password':'current-password';$('#aReset').hidden=m==='up';aerr('')}
+ $('#aName').hidden=m!=='up';$('#aArea').hidden=m!=='up';$('#aGo').textContent=m==='up'?'ලියාපදිංචි වන්න':'පිවිසෙන්න';$('#aPass').autocomplete=m==='up'?'new-password':'current-password';$('#aReset').hidden=m==='up';aerr('')}
 
 function bindAuth(){
+ $('#aArea').innerHTML='<option value="">— ඔබේ ප්‍රමිතිය තෝරන්න —</option>'+AREAS.map(a=>`<option value="${a.n}">${a.ic} ${a.n}. ${a.name}</option>`).join('');
  document.querySelectorAll('.atabs button').forEach(b=>b.onclick=()=>setMode(b.dataset.t));
  $('#fAuth').onsubmit=async e=>{e.preventDefault();if(!SETUP_OK)return aerr('Firebase සැකසුම් ගොනුව තවම පුරවා නැත.');
   const mail=$('#aMail').value.trim(),pw=$('#aPass').value,nm=$('#aName').value.trim();
   if(!mail||!pw)return aerr('ඊමේල් සහ මුරපදය ඇතුළත් කරන්න.');
   if(mode==='up'&&!nm)return aerr('ඔබේ නම ඇතුළත් කරන්න.');
+  if(mode==='up'&&!$('#aArea').value)return aerr('ඔබේ ප්‍රමිතිය තෝරන්න.');
   $('#aGo').disabled=true;aerr('');
-  try{if(mode==='up'){pendingName=nm;await auth.createUserWithEmailAndPassword(mail,pw)}else await auth.signInWithEmailAndPassword(mail,pw)}
+  try{if(mode==='up'){pendingName=nm;pendingArea=+$('#aArea').value;await auth.createUserWithEmailAndPassword(mail,pw)}else await auth.signInWithEmailAndPassword(mail,pw)}
   catch(x){aerr(errMsg(x))}finally{$('#aGo').disabled=false}};
- $('#aGoogle').onclick=async()=>{if(!SETUP_OK)return aerr('Firebase සැකසුම් ගොනුව තවම පුරවා නැත.');aerr('');
+ $('#aGoogle').onclick=async()=>{if(!SETUP_OK)return aerr('Firebase සැකසුම් ගොනුව තවම පුරවා නැත.');if(mode==='up'&&!$('#aArea').value)return aerr('පළමුව ඔබේ ප්‍රමිතිය තෝරන්න.');
+  pendingArea=mode==='up'?+$('#aArea').value:0;aerr('');
   try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())}catch(x){if(x.code!=='auth/popup-closed-by-user'&&x.code!=='auth/cancelled-popup-request')aerr(errMsg(x))}};
  $('#aReset').onclick=async()=>{const m=$('#aMail').value.trim();if(!m)return aerr('පළමුව ඊමේල් ලිපිනය ඇතුළත් කරන්න.');
   try{await auth.sendPasswordResetEmail(m);aerr('මුරපදය යළි සැකසීමේ සබැඳිය ඊමේල් වෙත යවන ලදී.',true)}catch(x){aerr(errMsg(x))}};
@@ -36,7 +39,7 @@ function bindAuth(){
 async function ensureUser(u){
  const ref=fs.collection('users').doc(u.uid),snap=await ref.get();if(snap.exists)return;
  const mail=(u.email||'').toLowerCase(),sup=SUPER_ADMINS.map(x=>x.toLowerCase()).includes(mail)&&u.emailVerified;
- await ref.set({name:pendingName||u.displayName||mail.split('@')[0],email:mail,role:sup?'admin':'teacher',status:sup?'active':'pending',area:null,createdAt:Date.now()});pendingName=''}
+ await ref.set({name:pendingName||u.displayName||mail.split('@')[0],email:mail,role:sup?'admin':'teacher',status:sup?'active':'pending',area:null,reqArea:(!sup&&pendingArea>=1&&pendingArea<=8)?pendingArea:null,createdAt:Date.now()});pendingName='';pendingArea=0}
 
 function route(u,me){
  if(!me){return}
@@ -46,7 +49,7 @@ function route(u,me){
   if(curKey!=='wait'){stopAppKeepUser();curKey='wait'}
   const dis=me.status==='disabled';
   $('#waitT').textContent=dis?'ප්‍රවේශය අක්‍රියයි':me.status==='active'?'ප්‍රමිතිය තවම ලබා දී නැත':'අනුමැතිය බලාපොරොත්තුවෙන්';
-  $('#waitB').innerHTML=`<b>${esc(me.name||'')}</b> (${esc(me.email)})<br>`+(dis?'ඔබගේ ගිණුම ඇඩ්මින් විසින් අක්‍රිය කර ඇත.':'ඔබගේ ගිණුම ලියාපදිංචි විය. ඇඩ්මින් විසින් ඔබට <b>ප්‍රමිතියක්</b> ලබා දුන් විට මෙම පිටුව ස්වයංක්‍රීයව විවෘත වේ.');
+  $('#waitB').innerHTML=`<b>${esc(me.name||'')}</b> (${esc(me.email)})<br>`+((!dis&&me.reqArea&&AREAS[me.reqArea-1])?`ඔබ ඉල්ලූ ප්‍රමිතිය: <b>${me.reqArea}. ${esc(AREAS[me.reqArea-1].name)}</b><br>`:'')+(dis?'ඔබගේ ගිණුම ඇඩ්මින් විසින් අක්‍රිය කර ඇත.':'ඔබගේ ගිණුම ලියාපදිංචි විය. ඇඩ්මින් විසින් ඔබට <b>ප්‍රමිතියක්</b> ලබා දුන් විට මෙම පිටුව ස්වයංක්‍රීයව විවෘත වේ.');
   screen('wait');return}
  const key=me.role+':'+(me.area||'all');
  if(curKey===key){ME={uid:u.uid,...me};return}      // වෙනසක් නැත

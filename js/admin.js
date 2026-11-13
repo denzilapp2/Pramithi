@@ -54,11 +54,11 @@ function usersTable(){
  const list=USERS.slice().sort((x,y)=>(x.status==='pending'?0:1)-(y.status==='pending'?0:1)||String(x.name).localeCompare(String(y.name)));
  return `<p class="note" style="text-align:left;margin:0 0 10px">ලියාපදිංචි වන ගුරුවරුන් මුලින් <b>අනුමැතිය බලාපොරොත්තුවෙන්</b> පවතී. ඔවුන්ට <b>ප්‍රමිතියක්</b> තෝරා දුන් විට ස්වයංක්‍රීයව අනුමත වේ. එක් ප්‍රමිතියකට ගුරුවරුන් කිහිප දෙනෙකුට ද ප්‍රවේශය දිය හැක.</p>
  <div class="tw"><table><thead><tr><th>නම / ඊමේල්</th><th>භූමිකාව</th><th>ප්‍රමිතිය</th><th>තත්ත්වය</th><th></th></tr></thead><tbody>${list.map(u=>{const me=u.id===ME.uid;
-  return `<tr class="${u.status==='pending'?'pend':''}" data-u="${u.id}"><td class="l"><b>${esc(u.name||'—')}</b>${me?' <span class="tag">(ඔබ)</span>':''}<br><span class="tag">${esc(u.email)}</span></td>
+  return `<tr class="${u.status==='pending'?'pend':''}" data-u="${u.id}"><td class="l"><b>${esc(u.name||'—')}</b>${me?' <span class="tag">(ඔබ)</span>':''}<br><span class="tag">${esc(u.email)}</span>${u.reqArea&&AREAS[u.reqArea-1]?`<br><span class="tag">📌 ඉල්ලූ ප්‍රමිතිය: <b>${u.reqArea}. ${esc(AREAS[u.reqArea-1].name)}</b></span>`:''}</td>
   <td><select data-uf="role"${me?' disabled':''}>${opt(Object.entries(ROLE_L),u.role)}</select></td>
   <td><select data-uf="area"${u.role==='admin'?' disabled':''}>${opt(areaOpts,u.area==null?'':u.area)}</select></td>
   <td><select data-uf="status"${me?' disabled':''}>${opt(Object.entries(ST_L),u.status)}</select></td>
-  <td>${me?'':'<button class="pdfbtn" style="--c:#e0527a" data-udel="'+u.id+'">🗑️</button>'}</td></tr>`}).join('')}</tbody></table></div>`}
+  <td>${u.status==='pending'&&u.reqArea&&AREAS[u.reqArea-1]?'<button class="pdfbtn" style="--c:#2e9e4f" data-uok="'+u.id+'">✅ අනුමත කරන්න</button> ':''}${me?'':'<button class="pdfbtn" style="--c:#e0527a" data-udel="'+u.id+'">🗑️</button>'}</td></tr>`}).join('')}</tbody></table></div>`}
 function listenUsers(U,er){U(fs.collection('users').onSnapshot(s=>{USERS=s.docs.map(d=>({id:d.id,...d.data()}));renderAdmin(true)},er))}
 
 let adminBound=false;
@@ -79,6 +79,17 @@ function renderAdmin(soft){
  else bindUsers()}
 function refreshMarkInputs(){$('#adminBody').querySelectorAll('.mkin').forEach(e=>{const r=mk(+e.dataset.a,e.dataset.k),f=e.dataset.f;e.value=r[f]==null?'':r[f];
  if(f==='o'||f==='x')e.classList.toggle('over',critMarks(+e.dataset.a,e.dataset.k).over)})}
+/* ---------- අනුමත කළ ගුරුවරයා ප්‍රමිතියේ සාමාජික ලැයිස්තුවට එක් කිරීම ---------- */
+const memRef=id=>fs.collection('members').doc('u_'+id);
+async function syncTeacher(u,n){
+ const ref=memRef(u.id),s=await ref.get();
+ if(s.exists)await ref.update({area:n});
+ else await ref.set({area:n,name:u.name||(u.email||'').split('@')[0],role:'ගුරුවරයා',photo:'',uid:u.id,ts:Date.now(),by:ME.uid})}
+const unsyncTeacher=id=>memRef(id).delete().catch(()=>{});
+function applyUser(u,upd){
+ fs.collection('users').doc(u.id).update(upd)
+  .then(()=>{if(upd.area)return syncTeacher(u,upd.area);if('area' in upd)return unsyncTeacher(u.id)})
+  .then(()=>{if(upd.area)toast('✅ '+(u.name||u.email)+' ප්‍රමිතිය '+upd.area+' හි ගුරු ලැයිස්තුවට එක් කරන ලදී')}).catch(fail)}
 function bindUsers(){
  document.querySelectorAll('#adminBody select[data-uf]').forEach(s=>s.onchange=()=>{
   const id=s.closest('tr').dataset.u,f=s.dataset.uf,u=USERS.find(x=>x.id===id);if(!u)return;
@@ -86,9 +97,10 @@ function bindUsers(){
   if(f==='area'){upd.area=s.value===''?null:+s.value;if(upd.area&&u.status==='pending')upd.status='active'}
   else if(f==='role'){upd.role=s.value;if(s.value==='admin'){upd.status='active';upd.area=null}}
   else upd.status=s.value;
-  fs.collection('users').doc(id).update(upd).catch(fail)});
+  applyUser(u,upd)});
+ document.querySelectorAll('#adminBody [data-uok]').forEach(b=>b.onclick=()=>{const u=USERS.find(x=>x.id===b.dataset.uok);if(u&&u.reqArea)applyUser(u,{status:'active',area:u.reqArea})});
  document.querySelectorAll('#adminBody [data-udel]').forEach(b=>b.onclick=()=>{const u=USERS.find(x=>x.id===b.dataset.udel);
-  if(u&&confirm('“'+(u.name||u.email)+'” ගේ ප්‍රවේශය ඉවත් කරන්නද?\n(ඔහුගේ ඉහත ඇතුළත් කළ සාක්ෂි ඉවත් නොවේ.)'))fs.collection('users').doc(u.id).delete().catch(fail)})}
+  if(u&&confirm('“'+(u.name||u.email)+'” ගේ ප්‍රවේශය ඉවත් කරන්නද?\n(ඔහුගේ ඉහත ඇතුළත් කළ සාක්ෂි ඉවත් නොවේ.)'))fs.collection('users').doc(u.id).delete().then(()=>unsyncTeacher(u.id)).catch(fail)})}
 
 /* ---------- CSV / මුද්‍රණය ---------- */
 function exportMarksCsv(){

@@ -236,6 +236,9 @@ body.boot #app,body.boot .authwrap{display:none}
 .authwrap[hidden]{display:none}
 .authcard{width:100%;max-width:420px;background:var(--card);color:var(--text);border-radius:26px;padding:28px 26px 24px;box-shadow:0 20px 50px rgba(0,0,0,.28);text-align:center}
 .alogo{font-size:46px;line-height:1}
+.alogo-img{width:96px;height:96px;border-radius:24px;box-shadow:0 8px 22px rgba(23,71,184,.35);display:block;margin:0 auto 4px}
+.authcard select{border:1px solid var(--line);background:var(--bg);color:var(--text);border-radius:12px;padding:11px 14px;font-size:15.5px;width:100%;font-family:var(--font)}
+.authcard select[hidden]{display:none}
 .authcard h1{margin:6px 0 2px;font-size:30px;font-weight:800}
 .authcard .sub{margin:0 0 16px;color:var(--muted);font-size:14.5px}
 .atabs{display:grid;grid-template-columns:1fr 1fr;background:var(--bg);border-radius:14px;padding:4px;margin-bottom:14px}
