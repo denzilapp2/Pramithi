@@ -4,6 +4,7 @@
    ඇඩ්මින්   → ප්‍රමිති 8 ම + ලකුණු යෙදීම + ගුරුවරු කළමනාකරණය
    ================================================================ */
 let fs=null,st=null,ME=null,VIS=[],items=[],mems=[],PR={},INFO={},SL={},MK={},UP={},PEND={},BLOBS={},LOGO='',unsubs=[],lastSig='',lastLeg='',hashBound=false;
+let TCH={},tchSig=null;   // ක්ෂේත්‍ර 2: ඇගයීමට ලක්වන ගුරුවරු
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const kind=f=>f.type.startsWith('image/')?'img':f.type.startsWith('video/')?'vid':'doc';
@@ -31,11 +32,12 @@ const dataToBlob=d=>{try{const[h,b]=d.split(','),m=/:(.*?);/.exec(h)[1],s=atob(b
 
 /* ================= Firestore කියවීම (real-time) ================= */
 function applyArea(id,d){const a=+id;
+ if(a===2){const ae=document.activeElement;if(!(ae&&ae.classList&&ae.classList.contains('tchin')))TCH=d.tch||{}}
  [PR,INFO,SL].forEach(o=>Object.keys(o).forEach(k=>{if(areaOf(k)===a)delete o[k]}));
  Object.entries(d.progs||{}).forEach(([k,v])=>{PR[dec(k)]=v});
  Object.entries(d.info||{}).forEach(([k,v])=>{if(!PEND[dec(k)])INFO[dec(k)]=v});
  Object.entries(d.slots||{}).forEach(([k,v])=>{SL[dec(k)]=v})}
-function postArea(){const sig=JSON.stringify(PR);if(sig!==lastSig){lastSig=sig;renderProgs()}refreshInfo();render()}
+function postArea(){const sig=JSON.stringify(PR);if(sig!==lastSig){lastSig=sig;renderProgs()}renderTeachers();refreshInfo();render()}
 function applySettings(d){d=d||{};const sn=$('#sname'),sy=$('#syear');
  if(document.activeElement!==sn)sn.value=d.name||'';
  if(document.activeElement!==sy)sy.value=d.year||new Date().getFullYear();
@@ -59,7 +61,7 @@ const saveSL=pk=>areaRef(areaOf(pk)).set({slots:{[enc(pk)]:SL[pk]}},{merge:true}
 function setInfo(pk,f,v){(INFO[pk]=INFO[pk]||{})[f]=v;const stamp=PEND[pk]=Date.now();flushInfo(pk,stamp)}
 const flushers={};
 function flushInfo(pk,stamp){(flushers[pk]=flushers[pk]||later((p,s)=>{
-  areaRef(areaOf(p)).set({info:{[enc(p)]:{d:(INFO[p]||{}).d||'',t:(INFO[p]||{}).t||''}}},{merge:true}).then(()=>{if(PEND[p]===s)delete PEND[p]}).catch(fail)},700))(pk,stamp)}
+  areaRef(areaOf(p)).set({info:{[enc(p)]:{d:(INFO[p]||{}).d||'',t:(INFO[p]||{}).t||'',g:(INFO[p]||{}).g||''}}},{merge:true}).then(()=>{if(PEND[p]===s)delete PEND[p]}).catch(fail)},700))(pk,stamp)}
 
 /* ================= ගොනු එක් කිරීම / ඉවත් කිරීම ================= */
 const SLOT_DEF=5;   // එක් වැඩසටහනකට පෙරනිමි ගොනු කොටු ගණන (අවශ්‍ය නම් එකතු කළ හැක)
@@ -122,11 +124,11 @@ const mkIn=(a,k,f,attr)=>`<input class="mkin ${f==='t'?'ant':'amk'}" data-a="${a
 const mkBarI=(a,k)=>`<div class="adm"><b>🛡️ ලකුණු</b>${mkIn(a,k,'o','type="number" min="0" max="6" step="0.5" placeholder="0–6"')}<span>/ ${DEF_MAX}</span><span class="apc" data-pc="${k}"></span>${mkIn(a,k,'t','placeholder="සටහන (අවශ්‍ය නම්)"')}</div>`;
 function critHTML(a,t,k){const ind=IND[k],sum=`<summary><span class="kn">${k}</span><span class="kt">${t}</span><span class="kc" id="c${k}">0</span></summary>`;
  if(!ind)return `<details class="crit" id="k${k}">${sum}${isAdmin()?mkBar(a.n,k):`<div class="mkview" id="mv${k}" hidden></div>`}<div id="pl${k}"></div><div class="addrow"><button class="addprog" data-k="${k}">➕ වැඩසටහනක් එක් කරන්න</button></div></details>`;
- return `<details class="crit" id="k${k}">${sum}<div class="mkview" id="mv${k}" hidden></div><div id="pl${k}"></div>`+ind.map(i=>`<details class="crit ind" id="k${i.id}"><summary><span class="kn">${i.id}</span><span class="kt">${indHTML(i)}</span><span class="kc" id="c${i.id}">0</span></summary>${isAdmin()?mkBarI(a.n,i.id):`<div class="mkview" id="mv${i.id}" hidden></div>`}<div id="pl${i.id}"></div><div class="addrow"><button class="addprog" data-k="${i.id}">➕ වැඩසටහනක් එක් කරන්න</button></div></details>`).join('')+`</details>`}
+ return `<details class="crit" id="k${k}">${sum}<div class="mkview" id="mv${k}" hidden></div><div id="pl${k}"></div>`+ind.map(i=>`<details class="crit ind" id="k${i.id}"><summary><span class="kn">${i.id}</span><span class="kt">${indHTML(i)}</span><span class="kc" id="c${i.id}">0</span></summary>${isAdmin()?(a.n===2?`<div class="adm" data-tm="${i.id}"></div>`:mkBarI(a.n,i.id)):`<div class="mkview" id="mv${i.id}" hidden></div>`}<div id="pl${i.id}"></div><div class="addrow"><button class="addprog" data-k="${i.id}">➕ වැඩසටහනක් එක් කරන්න</button></div></details>`).join('')+`</details>`}
 const mkBar=(a,k)=>`<div class="adm"><b>🛡️ ලකුණු</b>${mkIn(a,k,'o','type="number" min="0" step="0.5" placeholder="ලබාගත්"')}<span>/</span>${mkIn(a,k,'x','type="number" min="1" step="0.5" placeholder="6"')}<span class="apc" data-pc="${k}"></span>${mkIn(a,k,'t','placeholder="ඇඩ්මින් සටහන (අවශ්‍ය නම්)"')}</div>`;
 function sectionHTML(a){return `<section id="a${a.n}" style="--c:${a.c};--c2:${a.c2}">
   <div class="head"><div class="num">${a.ic}</div><h2>${a.n}. ${a.name}</h2><span class="cnt" id="c${a.n}">0</span></div><div class="aprog"><span>📈 ප්‍රගතිය</span><div class="pbar"><i id="pb${a.n}"></i></div><b id="pt${a.n}"></b><span class="pill" id="am${a.n}" hidden></span></div>
-  <div class="body"><div class="pdfbar"><button class="pdfbtn" data-a="${a.n}" style="--c:${a.c}">📄 මෙම ප්‍රමිතිය PDF කරන්න</button><button class="pdfbtn" data-p="${a.n}" style="--c:#d24726">📊 මෙම ප්‍රමිතිය PPT කරන්න</button></div><div class="two"><div class="std"><h4>📌 ප්‍රමිති</h4>${a.std.map((s,i)=>`<div><b>${i+1}.</b> ${s}</div>`).join('')}</div><div class="std req"><h4>📋 අවශ්‍යතා</h4>${REQ[a.n].map((s,i)=>`<div><b>${i+1}.</b> ${s}</div>`).join('')}</div></div><h4 class="ch">👥 සාමාජිකයන් (කණ්ඩායම)</h4><div class="mems" id="mem${a.n}"></div><div class="madd" data-a="${a.n}"><label class="mph" title="ඡායාරූපය තෝරන්න"><input type="file" accept="image/*" hidden class="mfile"><span class="mpv">📷</span></label><input class="mname" placeholder="නම"><input class="mrole" placeholder="තනතුර / භූමිකාව"><button class="btn mbtn">＋ සාමාජිකයෙකු එක් කරන්න</button></div><h4 class="ch">✅ නිර්ණායක – සාක්ෂි / ගොනු එක් කරන්න</h4>
+  <div class="body"><div class="pdfbar"><button class="pdfbtn" data-a="${a.n}" style="--c:${a.c}">📄 මෙම ප්‍රමිතිය PDF කරන්න</button><button class="pdfbtn" data-p="${a.n}" style="--c:#d24726">📊 මෙම ප්‍රමිතිය PPT කරන්න</button></div><div class="two"><div class="std"><h4>📌 ප්‍රමිති</h4>${a.std.map((s,i)=>`<div><b>${i+1}.</b> ${s}</div>`).join('')}</div><div class="std req"><h4>📋 අවශ්‍යතා</h4>${REQ[a.n].map((s,i)=>`<div><b>${i+1}.</b> ${s}</div>`).join('')}</div></div><h4 class="ch">👥 සාමාජිකයන් (කණ්ඩායම)</h4><div class="mems" id="mem${a.n}"></div><div class="madd" data-a="${a.n}"><label class="mph" title="ඡායාරූපය තෝරන්න"><input type="file" accept="image/*" hidden class="mfile"><span class="mpv">📷</span></label><input class="mname" placeholder="නම"><input class="mrole" placeholder="තනතුර / භූමිකාව"><button class="btn mbtn">＋ සාමාජිකයෙකු එක් කරන්න</button></div>${a.n===2?'<div class="tchbox" id="tch2"></div>':''}<h4 class="ch">✅ නිර්ණායක – සාක්ෂි / ගොනු එක් කරන්න</h4>
   <div class="sub" style="font-weight:700;margin:6px 0 2px">📌 නිර්ණායක → දර්ශක – ඒ ඒ දර්ශකය යටතේ සාක්ෂි (පින්තූර / ගොනු 5ක් බැගින්) එක් කරන්න; අවශ්‍ය නම් කොටු හෝ වැඩසටහන් වැඩි කරන්න</div>${CRIT[a.n].map((t,i)=>critHTML(a,t,a.n+'.'+(i+1))).join('')}
   </div></section>`}
 function build(){
@@ -152,13 +154,16 @@ async function delProg(k,pk){if(!confirm('මෙම වැඩසටහන සහ
   const nl=getP(k).filter(x=>x!==pk);PR[k]=nl;delete INFO[pk];delete SL[pk];
   await areaRef(areaOf(k)).set({progs:{[enc(k)]:nl},info:{[enc(pk)]:FV().delete()},slots:{[enc(pk)]:FV().delete()}},{merge:true})}catch(e){fail(e)}
  renderProgs();render()}
-function infoHTML(k){return `<div class="info"><label>📅 දිනය<input type="date" class="idate" data-k="${k}"></label><label>📝 වැඩසටහන / සිද්ධිය පිළිබඳ කෙටි විස්තරය<textarea class="itext" data-k="${k}" rows="2" placeholder="සිදුකළ වැඩසටහන හෝ සිද්ධිය ගැන කෙටියෙන් ලියන්න..."></textarea></label></div>`}
+function infoHTML(k){const tsel=areaOf(k)===2?`<label>👩‍🏫 අදාළ ගුරුවරයා<select class="itch" data-k="${k}"><option value="">— සියලු / තෝරා නැත —</option>${tchIds().map(t=>`<option value="${t}">${esc(tchName(t))}</option>`).join('')}</select></label>`:'';
+ return `<div class="info">${tsel}<label>📅 දිනය<input type="date" class="idate" data-k="${k}"></label><label>📝 වැඩසටහන / සිද්ධිය පිළිබඳ කෙටි විස්තරය<textarea class="itext" data-k="${k}" rows="2" placeholder="සිදුකළ වැඩසටහන හෝ සිද්ධිය ගැන කෙටියෙන් ලියන්න..."></textarea></label></div>`}
 function refreshInfo(){
  document.querySelectorAll('.idate').forEach(e=>{if(document.activeElement!==e)e.value=(INFO[e.dataset.k]||{}).d||''});
- document.querySelectorAll('.itext').forEach(e=>{if(document.activeElement!==e)e.value=(INFO[e.dataset.k]||{}).t||''})}
+ document.querySelectorAll('.itext').forEach(e=>{if(document.activeElement!==e)e.value=(INFO[e.dataset.k]||{}).t||''});
+ document.querySelectorAll('.itch').forEach(e=>{e.value=(INFO[e.dataset.k]||{}).g||''})}
 function bindInfo(){
  document.querySelectorAll('.idate').forEach(e=>{e.onchange=()=>setInfo(e.dataset.k,'d',e.value)});
- document.querySelectorAll('.itext').forEach(e=>{e.oninput=()=>setInfo(e.dataset.k,'t',e.value)});refreshInfo()}
+ document.querySelectorAll('.itext').forEach(e=>{e.oninput=()=>setInfo(e.dataset.k,'t',e.value)});
+ document.querySelectorAll('.itch').forEach(e=>{e.onchange=()=>setInfo(e.dataset.k,'g',e.value)});refreshInfo()}
 function initInfo(){renderProgs();
  document.querySelectorAll('.addprog').forEach(b=>b.onclick=()=>{const k=b.dataset.k,l=getP(k).slice();let n=2;while(l.includes(k+'~'+n))n++;l.push(k+'~'+n);PR[k]=l;saveProgs(k);renderProgs();render()});
  const pdfGo=async ns=>{if(!(await hydrate(ns)))return;makePDF(ns)};
@@ -244,6 +249,36 @@ function startApp(){
  build();initInfo();pages();initMem();bindSchool();if(typeof addSheets==='function')addSheets();
  document.body.classList.remove('boot');$('#app').hidden=false;listen()}
 function stopApp(){
- unsubs.forEach(u=>{try{u()}catch(e){}});unsubs=[];ME=null;VIS=[];items=[];mems=[];PR={};INFO={};SL={};MK={};UP={};PEND={};lastSig='';lastLeg='';LOGO='';
+ unsubs.forEach(u=>{try{u()}catch(e){}});unsubs=[];ME=null;VIS=[];items=[];mems=[];PR={};INFO={};SL={};MK={};UP={};TCH={};tchSig=null;PEND={};lastSig='';lastLeg='';LOGO='';
  $('#areas').innerHTML='';$('#admin').innerHTML='';$('#nav').innerHTML='';$('#app').hidden=true;$('#sname').value='';
  if(typeof stopAdmin==='function')stopAdmin()}
+
+/* ================= ක්ෂේත්‍ර 2: ඇගයීමට ලක්වන ගුරුවරු (අවශ්‍ය පරිදි එක් කරන්න) ================= */
+const tchIds=()=>Object.keys(TCH).sort((x,y)=>(TCH[x].ts||0)-(TCH[y].ts||0));
+const tchName=t=>((TCH[t]&&TCH[t].n)||'').trim()||('ගුරු '+String(tchIds().indexOf(t)+1).padStart(2,'0'));
+const saveTch=id=>{if(TCH[id])areaRef(2).set({tch:{[id]:TCH[id]}},{merge:true}).catch(fail)};
+const tchW={};
+function renderTeachers(){
+ const el=document.getElementById('tch2');if(!el)return;
+ const ae=document.activeElement;if(el.contains(ae)&&/INPUT/.test(ae.tagName))return;
+ const ids=tchIds();
+ el.innerHTML=`<h4 class="ch">👩‍🏫 ඇගයීමට ලක්වන ගුරුවරු</h4><p class="sub" style="margin:2px 14px 8px">ඇගයීම් ආකෘතියේ ගුරු 01, 02… ලෙස එක් එක් ගුරුවරයා අවශ්‍ය පරිදි එක් කරන්න (සංඛ්‍යාවට සීමාවක් නැත). ඒ ඒ වැඩසටහනට ගුරුවරයා තෝරා දිය හැකි අතර, ඇඩ්මින් දර්ශකයට ගුරුවරයා අනුව ලකුණු දේ.</p>`+
+  (ids.length?ids.map((t,i)=>{const T=TCH[t];return `<div class="trow"><span class="tn">${i+1}</span><input class="tchin" data-t="${t}" data-f="n" placeholder="ගුරුභවතාගේ නම" value="${esc(T.n)}"><input class="tchin" data-t="${t}" data-f="s" placeholder="විෂයය" value="${esc(T.s)}"><input class="tchin" data-t="${t}" data-f="g" placeholder="ශ්‍රේණිය" value="${esc(T.g)}"><input class="tchin" data-t="${t}" data-f="p" placeholder="කාලච්ඡේදය" value="${esc(T.p)}"><button class="x" data-tdel="${t}" title="ඉවත් කරන්න">✕</button></div>`}).join(''):'<div class="empty" style="margin:4px 14px">තවම ගුරුවරු එක් කර නැත</div>')+
+  `<div class="addrow"><button class="addprog" id="tchAdd">➕ ගුරුවරයෙකු එක් කරන්න</button></div>`;
+ const sig=ids.map(t=>t+':'+tchName(t)).join('|');
+ if(sig!==tchSig){tchSig=sig;renderProgs();renderTchMarks()}}
+function renderTchMarks(){
+ if(!isAdmin())return;
+ const ae=document.activeElement;if(ae&&ae.classList&&ae.classList.contains('mkin')&&ae.closest('[data-tm]'))return;
+ const ids=tchIds();
+ document.querySelectorAll('[data-tm]').forEach(el=>{const k=el.dataset.tm;
+  el.innerHTML='<b>🛡️ ලකුණු</b>'+(ids.length?ids.map(t=>`<label class="tmk" title="${esc(tchName(t))}"><span>${esc(tchName(t))}</span>${mkIn(2,k+'@'+t,'o','type="number" min="0" max="'+DEF_MAX+'" step="0.5" placeholder="0–'+DEF_MAX+'"')}</label>`).join('')+`<span>/ ${DEF_MAX}</span><span class="apc" data-pc="${k}"></span>`+mkIn(2,k,'t','placeholder="සටහන (අවශ්‍ය නම්)"'):'<span>ලකුණු දීමට ඉහත “ඇගයීමට ලක්වන ගුරුවරු” කොටසට ගුරුවරුන් එක් කරන්න</span>')});
+ if(typeof refreshMarks==='function')refreshMarks()}
+document.addEventListener('input',e=>{const t=e.target;if(!t.classList||!t.classList.contains('tchin'))return;const id=t.dataset.t;if(!TCH[id])return;
+ TCH[id][t.dataset.f]=t.value;(tchW[id]=tchW[id]||later(saveTch,700))(id)});
+document.addEventListener('focusout',e=>{if(e.target.classList&&e.target.classList.contains('tchin'))setTimeout(renderTeachers,1000)});
+document.addEventListener('click',e=>{
+ if(e.target.closest&&e.target.closest('#tchAdd')){const id='t'+Date.now().toString(36);TCH[id]={n:'',s:'',g:'',p:'',ts:Date.now()};saveTch(id);renderTeachers();
+  const f=document.querySelector('.tchin[data-t="'+id+'"][data-f="n"]');if(f)f.focus();return}
+ const d=e.target.closest&&e.target.closest('[data-tdel]');
+ if(d&&confirm('මෙම ගුරුවරයා ඉවත් කරන්නද? (ඔහුට දුන් ලකුණු සාමාන්‍යයට ගණන් නොගනී)')){const id=d.dataset.tdel;delete TCH[id];areaRef(2).set({tch:{[id]:FV().delete()}},{merge:true}).catch(fail);renderTeachers()}});
