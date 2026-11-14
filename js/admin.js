@@ -12,6 +12,9 @@ const r1=n=>Math.round(n*10)/10;
 /* ---------- ලකුණු දත්ත ---------- */
 const mk=(a,k)=>((MK[a]||{})[enc(k)])||{};
 function critMarks(a,k){
+ if(a===2&&isIndId(k)&&typeof TCH!=='undefined'){   // ක්ෂේත්‍ර 2: ගුරුවරුන්ගේ ලකුණු වල සාමාන්‍යය
+  const v=Object.keys(TCH).map(t=>mk(a,k+'@'+t).o).filter(o=>o!=null&&o!==''&&!isNaN(o)).map(Number);
+  if(v.length){const o=r1(v.reduce((x,y)=>x+y,0)/v.length);return{has:true,o,x:DEF_MAX,t:mk(a,k).t||'',p:r1(o/DEF_MAX*100),over:v.some(z=>z>DEF_MAX),tc:v.length}}}
  if(isIndId(k)){const r=mk(a,k),has=r.o!=null&&r.o!==''&&!isNaN(r.o);return{has,o:has?+r.o:0,x:DEF_MAX,t:r.t||'',p:has?r1(r.o/DEF_MAX*100):null,over:has&&+r.o>DEF_MAX}}
  const ind=IND[k];
  if(ind){let o=0,c=0;ind.forEach(i=>{const r=mk(a,i.id);if(r.o!=null&&r.o!==''&&!isNaN(r.o)){o+=+r.o;c++}});
@@ -43,6 +46,7 @@ function refreshMarks(){
  if(isAdmin())renderAdmin(true)}
 
 /* ================= ඇඩ්මින් පැනල HTML ================= */
+const t2cell=k=>tchIds().length?tchIds().map(t=>`<label class="tmk"><small>${esc(tchName(t))}</small>${mkIn(2,k+'@'+t,'o','type="number" min="0" max="'+DEF_MAX+'" step="0.5"')}</label>`).join(''):'—';
 function marksTable(){
  let totO=0,totX=0,marked=0,all=0,evd=0;
  const inp=(a,k)=>mkIn(a,k,'o','type="number" min="0" max="'+DEF_MAX+'" step="0.5"');
@@ -53,12 +57,12 @@ function marksTable(){
     return `<tr><td>${k}</td><td class="l">${esc(t)}</td><td>${pl.length}</td><td>${fc(fl)}</td><td>${mkIn(a.n,k,'o','type="number" min="0" step="0.5"')}</td><td>${mkIn(a.n,k,'x','type="number" min="1" step="0.5" placeholder="'+DEF_MAX+'"')}</td><td data-tpc="${k}">${m.has?m.p+'%':'—'}</td><td class="l">${mkIn(a.n,k,'t','placeholder="සටහන"').replace('class="mkin ant"','class="mkin mkt"')}</td></tr>`}
    let h=`<tr class="cr"><td>${k}</td><td class="l">${esc(t)}</td><td>${ind.reduce((n,x)=>n+getP(x.id).length,0)}</td><td>${fc(fl)}</td><td colspan="2" data-tot="${k}">${m.has?r1(m.o)+' / '+m.x:'—'}</td><td data-tpc="${k}">${m.has?m.p+'%':'—'}</td><td class="l"><span class="tag">දර්ශක ලකුණු වල එකතුව</span></td></tr>`;
    ind.forEach(x=>{const im=critMarks(a.n,x.id),f2=items.filter(y=>inCrit(String(y.pk),x.id)).length;
-    h+=`<tr><td>${x.id}</td><td class="l">${indHTML(x)}</td><td>${getP(x.id).length}</td><td>${fc(f2)}</td><td>${inp(a.n,x.id)}</td><td>${DEF_MAX}</td><td data-tpc="${x.id}">${im.has?im.p+'%':'—'}</td><td class="l">${mkIn(a.n,x.id,'t','placeholder="සටහන"').replace('class="mkin ant"','class="mkin mkt"')}</td></tr>`});
+    h+=`<tr><td>${x.id}</td><td class="l">${indHTML(x)}</td><td>${getP(x.id).length}</td><td>${fc(f2)}</td><td>${a.n===2?t2cell(x.id):inp(a.n,x.id)}</td><td>${DEF_MAX}</td><td data-tpc="${x.id}">${im.has?im.p+'%':'—'}</td><td class="l">${mkIn(a.n,x.id,'t','placeholder="සටහන"').replace('class="mkin ant"','class="mkin mkt"')}</td></tr>`});
    return h}).join('');
   return `<tr class="ah" style="--c:${a.c}"><td colspan="4">${a.ic} ${a.n}. ${esc(a.name)}</td><td colspan="4" style="text-align:right">${am.c?`ලකුණු ${am.o} / ${am.x} · <b>${am.p}%</b> ${pillH(am.p)}`:'<span style="opacity:.85">ලකුණු යොදා නැත</span>'}</td></tr>`+rows}).join('');
  const p=totX?r1(totO/totX*100):null;
  return `<div class="kpis"><div class="kpi"><small>සමස්ත ලකුණු ප්‍රතිශතය</small><b>${p==null?'—':p+'%'}</b></div><div class="kpi"><small>සමස්ත ශ්‍රේණිය</small><b style="font-size:19px">${p==null?'—':gradeOf(p)[1]}</b></div><div class="kpi"><small>ලකුණු යොදා ඇති නිර්ණායක</small><b>${marked} / ${all}</b></div><div class="kpi"><small>සාක්ෂි ඇති නිර්ණායක</small><b>${evd} / ${all}</b></div></div>
- <p class="note" style="text-align:left;margin:0 0 10px">ක්ෂේත්‍ර 1–8 හි <b>සෑම දර්ශකයකටම</b> (3.1.1, 3.1.2 …) ලකුණු 0–${DEF_MAX} අතර ඇතුළත් කරන්න (6 = විශිෂ්ටයි). නිර්ණායකයේ මුළු ලකුණු ස්වයංක්‍රීයව දර්ශක ලකුණු වල එකතුව වේ; එය ඇගයීම් ආකෘතියේ “නිර්ණායකයට අදාළ මුළු ලකුණු” කොටුවටත්, දර්ශක කොටු වලටත් ආකෘතියට යයි. ගුරුවරුන්ට ඔවුන්ගේ ප්‍රමිතියේ ලකුණු බැලිය හැක (වෙනස් කළ නොහැක).</p>
+ <p class="note" style="text-align:left;margin:0 0 10px">ක්ෂේත්‍ර 1–8 හි <b>සෑම දර්ශකයකටම</b> (3.1.1, 3.1.2 …) ලකුණු 0–${DEF_MAX} අතර ඇතුළත් කරන්න (6 = විශිෂ්ටයි). ක්ෂේත්‍ර 2 හි දර්ශකයකට ලකුණු දෙන්නේ ඇගයීමට ලක්වන <b>එක් එක් ගුරුවරයාට</b> වෙන වෙනම වන අතර, දර්ශකයේ ලකුණ ඔවුන්ගේ සාමාන්‍යය වේ. නිර්ණායකයේ මුළු ලකුණු ස්වයංක්‍රීයව දර්ශක ලකුණු වල එකතුව වේ; එය ඇගයීම් ආකෘතියේ “නිර්ණායකයට අදාළ මුළු ලකුණු” කොටුවටත්, දර්ශක කොටු වලටත් ආකෘතියට යයි. ගුරුවරුන්ට ඔවුන්ගේ ප්‍රමිතියේ ලකුණු බැලිය හැක (වෙනස් කළ නොහැක).</p>
  <div class="tw"><table><thead><tr><th>#</th><th>නිර්ණායකය / දර්ශකය</th><th>වැඩසටහන්</th><th>ගොනු</th><th>ලබාගත් ලකුණු</th><th>උපරිම</th><th>%</th><th>සටහන</th></tr></thead><tbody>${body}<tr class="tot"><td colspan="4" class="l">සමස්ත එකතුව</td><td>${r1(totO)}</td><td>${r1(totX)}</td><td>${p==null?'—':p+'%'}</td><td class="l">${pillH(p)}</td></tr></tbody></table></div>
  <div class="admrow"><button class="pdfbtn all" id="mkCsv">⬇️ ලකුණු CSV ලෙස බාගන්න</button><button class="pdfbtn all" id="mkPrint">🖨️ මුද්‍රණය</button></div>`}
 const ROLE_L={teacher:'ගුරුවරයා',admin:'ඇඩ්මින්'},ST_L={active:'අනුමතයි',pending:'අනුමැතිය බලාපොරොත්තුවෙන්',disabled:'අක්‍රියයි'};
@@ -88,7 +92,7 @@ function renderAdmin(soft){
  const body=$('#adminBody');
  // සංස්කරණයේ යෙදී සිටින විට (focus) තාවකාලිකව නැවත නොඅඳින්න
  const ae=document.activeElement;if(soft&&ae&&root.contains(ae)&&/INPUT|SELECT/.test(ae.tagName))return;
- const sig=adminTab+'|'+(adminTab==='marks'?JSON.stringify(MK)+items.length+JSON.stringify(PR):JSON.stringify(USERS));
+ const sig=adminTab+'|'+(adminTab==='marks'?JSON.stringify(MK)+items.length+JSON.stringify(PR)+JSON.stringify(TCH):JSON.stringify(USERS));
  if(soft&&sig===lastAdminSig&&body.innerHTML)return;lastAdminSig=sig;
  body.innerHTML=adminTab==='marks'?marksTable():usersTable();
  if(adminTab==='marks'){$('#mkCsv').onclick=exportMarksCsv;$('#mkPrint').onclick=printMarks;refreshMarkInputs()}
