@@ -315,3 +315,8 @@ body.boot #app,body.boot .authwrap{display:none}
 .adm .tmk span{max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #admin label.tmk{display:inline-flex;flex-direction:column;align-items:center;margin:2px 4px;font-size:11px}
 select.itch{display:block;margin-top:2px;padding:4px 6px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit}
+
+/* විස්තර කොටුව විශාල කිරීම */
+.info label.iw{grid-column:1/-1}
+.info textarea{min-height:110px;line-height:1.5}
+@media(max-width:700px){.prog .slots,.prog .info{margin-left:4px;margin-right:4px}.info{margin:10px 4px 0;padding:8px 10px}.crit.ind{margin:8px 4px}}
