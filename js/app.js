@@ -155,7 +155,7 @@ async function delProg(k,pk){if(!confirm('මෙම වැඩසටහන සහ
   await areaRef(areaOf(k)).set({progs:{[enc(k)]:nl},info:{[enc(pk)]:FV().delete()},slots:{[enc(pk)]:FV().delete()}},{merge:true})}catch(e){fail(e)}
  renderProgs();render()}
 function infoHTML(k){const tsel=areaOf(k)===2?`<label>👩‍🏫 අදාළ ගුරුවරයා<select class="itch" data-k="${k}"><option value="">— සියලු / තෝරා නැත —</option>${tchIds().map(t=>`<option value="${t}">${esc(tchName(t))}</option>`).join('')}</select></label>`:'';
- return `<div class="info">${tsel}<label>📅 දිනය<input type="date" class="idate" data-k="${k}"></label><label>📝 වැඩසටහන / සිද්ධිය පිළිබඳ කෙටි විස්තරය<textarea class="itext" data-k="${k}" rows="2" placeholder="සිදුකළ වැඩසටහන හෝ සිද්ධිය ගැන කෙටියෙන් ලියන්න..."></textarea></label></div>`}
+ return `<div class="info">${tsel}<label>📅 දිනය<input type="date" class="idate" data-k="${k}"></label><label class="iw">📝 වැඩසටහන / සිද්ධිය පිළිබඳ කෙටි විස්තරය<textarea class="itext" data-k="${k}" rows="4" placeholder="සිදුකළ වැඩසටහන හෝ සිද්ධිය ගැන කෙටියෙන් ලියන්න..."></textarea></label></div>`}
 function refreshInfo(){
  document.querySelectorAll('.idate').forEach(e=>{if(document.activeElement!==e)e.value=(INFO[e.dataset.k]||{}).d||''});
  document.querySelectorAll('.itext').forEach(e=>{if(document.activeElement!==e)e.value=(INFO[e.dataset.k]||{}).t||''});
