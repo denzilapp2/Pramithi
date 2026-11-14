@@ -304,3 +304,14 @@ body.boot #app,body.boot .authwrap{display:none}
 .indtxt b{color:var(--c)}
 .more+.more{margin-left:6px}
 #admin .indtxt{font-weight:500;max-width:560px}
+
+/* ක්ෂේත්‍ර 2 – ගුරුවරු */
+.tchbox{margin-top:10px}
+.trow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 14px}
+.trow .tn{font-weight:700;color:var(--c);min-width:22px}
+.trow input{flex:1;min-width:110px;border:1px solid var(--line);background:var(--bg);color:var(--text);border-radius:8px;padding:6px 8px;font:inherit;font-size:14px}
+.trow button.x{position:static;width:28px;height:28px}
+.adm .tmk{display:flex;flex-direction:column;gap:2px;font-size:12px}
+.adm .tmk span{max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#admin label.tmk{display:inline-flex;flex-direction:column;align-items:center;margin:2px 4px;font-size:11px}
+select.itch{display:block;margin-top:2px;padding:4px 6px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit}
