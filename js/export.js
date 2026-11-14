@@ -31,6 +31,7 @@ async function makePDF(ns){
  const now=new Date(),yr=(($('#syear').value||'').trim()||now.getFullYear()),td=String(now.getDate()).padStart(2,'0')+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+now.getFullYear();
  const list=AREAS.filter(a=>ns.includes(a.n));if(!list.length)return;
  const single=list.length===1;
+ await prepSheets(ns);
  /* පින්තූර PPT එකේ මෙන්ම නැවත සකසා (≤1400px JPEG) PDF එකට දමන්න */
  IMGD={};
  const pics=items.filter(i=>i.kind==='img'&&i.blob&&ns.includes(i.area));
@@ -129,22 +130,22 @@ async function makePPT(ns){
      else T(s,fico(f),{x:x+.1,y:y+.1,w:w-.2,h:1.65,fontSize:44,align:'center',valign:'middle'});
      T(s,(f.cap||'')+(im||!f.cap?'':' · ')+(im?'':f.name),{x:x+.12,y:y+1.78,w:w-.24,h:.28,fontSize:10,color:'2B2A33',align:'center',valign:'middle'})}
     foot(s,lab)}}
- (SHEETS[a.n]||[]).forEach(d=>{const sl=pres.addSlide();sl.background={color:'FFFFFF'};const q=pfit(0,0,13.33,7.5,612,864);sl.addImage({data:d.slice(5),x:q.x,y:q.y,w:q.w,h:q.h})});
+ (await sheetPages(a.n)).forEach(d=>{const sl=pres.addSlide();sl.background={color:'FFFFFF'};const q=pfit(0,0,13.33,7.5,612,864);sl.addImage({data:d.slice(5),x:q.x,y:q.y,w:q.w,h:q.h})});
  }
  await pres.writeFile({fileName:single?`${yr} - ප්‍රමිතිය ${list[0].n} - ${list[0].name}.pptx`:`${yr} - ගුණාත්මක සාක්ෂි - සම්පූර්ණ ගොනුව.pptx`});
  }catch(e){console.error(e);alert('PPT සෑදීමේදී දෝෂයක් ඇති විය: '+e.message)}
  finally{bts.forEach((b,i)=>{b.disabled=false;b.textContent=txt[i]})}}
 const hex=h=>h.replace('#','');
 
-function sheetsHTML(n){return (SHEETS[n]||[]).map(d=>`<div class="pp-sheet"><img src="${d}" alt=""></div>`).join('')}
-async function printSheet(n){const root=$('#printRoot');root.innerHTML=sheetsHTML(n);
+function sheetsHTML(n){return (SHP[n]||SHEETS[n]||[]).map(d=>`<div class="pp-sheet"><img src="${d}" alt=""></div>`).join('')}
+async function printSheet(n){await prepSheets([n]);const root=$('#printRoot');root.innerHTML=sheetsHTML(n);
  await Promise.all([...root.querySelectorAll('img')].map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r})));
  const old=document.title,a=AREAS[n-1];document.title=`ඇගයීම් ආකෘතිය 0${n} - ${a.name}`;
  const done=()=>{window.removeEventListener('afterprint',done);root.innerHTML='';document.title=old};
  window.addEventListener('afterprint',done);setTimeout(()=>window.print(),80)}
 function addSheets(){AREAS.forEach(a=>{const body=document.querySelector('#a'+a.n+' .body');if(!body)return;
- const d=document.createElement('details');d.className='sheet';d.style.setProperty('--c',a.c);
+ const d=document.createElement('details');d.className='sheet';d.dataset.a=a.n;d.style.setProperty('--c',a.c);
  d.innerHTML=`<summary>📝 ඇගයීම් ආකෘතිය 0${a.n} – ලකුනු කොළය <span class="kc">පිටු ${(SHEETS[a.n]||[]).length}</span></summary><div class="sheetbar"><button class="pdfbtn" style="--c:${a.c}">🖨️ ලකුනු කොළය මුද්‍රණය / PDF</button></div><div class="sheetpages"></div>`;
  d.querySelector('.pdfbtn').onclick=()=>printSheet(a.n);
- d.addEventListener('toggle',()=>{const w=d.querySelector('.sheetpages');if(d.open&&!w.children.length)w.innerHTML=(SHEETS[a.n]||[]).map(x=>`<img src="${x}" alt="" loading="lazy">`).join('')});
+ d.addEventListener('toggle',()=>{const w=d.querySelector('.sheetpages');if(d.open&&!w.children.length)fillSheet(a.n,w)});
  body.insertBefore(d,body.querySelector('.pager'))})}
