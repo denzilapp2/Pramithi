@@ -5,7 +5,7 @@ const PU=b=>{const u=URL.createObjectURL(b);pUrls.push(u);return u};
 const fdate=s=>{const p=(s||'').split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:''};
 const fico=i=>/pdf/i.test(i.type)?'📕':/sheet|excel|csv/i.test(i.type)?'📊':/word|document/i.test(i.type)?'📝':i.kind==='vid'?'🎬':'📄';
 function areaStat(a){
- const rows=[];CRIT[a.n].forEach((t,i)=>{const k=a.n+'.'+(i+1),ind=IND[k],us=ind?(hasLegacy(k)?[{u:k}]:[]).concat(ind.map(x=>({u:x.id,img:x.img,w:x.w,h:x.h,tx:x.txt?((x.lab||'')+' '+x.txt).trim():''}))):[{u:k}];
+ const rows=[];CRIT[a.n].forEach((t,i)=>{const k=a.n+'.'+(i+1),ind=IND[k],us=ind?(hasLegacy(k)?[{u:k}]:[]).concat(ind.map(x=>({u:x.id,img:x.img,w:x.w,h:x.h,tx:x.txt?((x.lab&&x.lab!==x.id?x.lab+' ':'')+x.txt):''}))):[{u:k}];
   us.forEach(un=>{const l=getP(un.u);l.forEach((pk,j)=>{const list=items.filter(x=>x.pk===pk).sort((x,y)=>(x.slot||0)-(y.slot||0)),inf=INFO[pk]||{};
    if((un.img||un.tx)&&!list.length&&!(inf.t||'').trim()&&!inf.d)return;
    rows.push({k:un.u,ck:k,ct:t,t:un.tx||t,tx:un.tx||'',img:un.img||'',iw:un.w,ih:un.h,pl:l.length>1?'වැඩසටහන '+(j+1):'',inf,list})})})});

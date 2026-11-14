@@ -119,7 +119,7 @@ function initMem(){document.querySelectorAll('.madd').forEach(f=>{const n=+f.dat
 
 /* ================= ව්‍යුහය ගොඩනැගීම ================= */
 /* දර්ශකය පෙන්වීම: පින්තූරය (3–8) හෝ පෙළ (1–2) */
-function indHTML(i){return i.img?`<img class="indimg" src="${i.img}" alt="${i.id}">`:`<span class="indtxt">${i.lab?`<b>${esc(i.lab)}</b> `:''}${esc(i.txt||'')}</span>`}
+function indHTML(i){return i.img?`<img class="indimg" src="${i.img}" alt="${i.id}">`:`<span class="indtxt">${i.lab&&i.lab!==i.id?`<b>${esc(i.lab)}</b> `:''}${esc(i.txt||'')}</span>`}
 const mkIn=(a,k,f,attr)=>`<input class="mkin ${f==='t'?'ant':'amk'}" data-a="${a}" data-k="${k}" data-f="${f}" ${attr}>`;
 const mkBarI=(a,k)=>`<div class="adm"><b>🛡️ ලකුණු</b>${mkIn(a,k,'o','type="number" min="0" max="6" step="0.5" placeholder="0–6"')}<span>/ ${DEF_MAX}</span><span class="apc" data-pc="${k}"></span>${mkIn(a,k,'t','placeholder="සටහන (අවශ්‍ය නම්)"')}</div>`;
 function critHTML(a,t,k){const ind=IND[k],sum=`<summary><span class="kn">${k}</span><span class="kt">${t}</span><span class="kc" id="c${k}">0</span></summary>`;
