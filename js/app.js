@@ -3,11 +3,11 @@
    ගුරුවරයා  → තමන්ගේ ප්‍රමිතිය පමණක්
    ඇඩ්මින්   → ප්‍රමිති 8 ම + ලකුණු යෙදීම + ගුරුවරු කළමනාකරණය
    ================================================================ */
-let fs=null,st=null,ME=null,VIS=[],items=[],mems=[],PR={},INFO={},SL={},MK={},UP={},PEND={},BLOBS={},LOGO='',unsubs=[],lastSig='',hashBound=false;
+let fs=null,st=null,ME=null,VIS=[],items=[],mems=[],PR={},INFO={},SL={},MK={},UP={},PEND={},BLOBS={},LOGO='',unsubs=[],lastSig='',lastLeg='',hashBound=false;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const kind=f=>f.type.startsWith('image/')?'img':f.type.startsWith('video/')?'vid':'doc';
-const enc=s=>String(s).replace(/\./g,'_'),dec=s=>String(s).replace('_','.');
+const enc=s=>String(s).replace(/\./g,'_'),dec=s=>String(s).replace(/_/g,'.');
 const areaOf=pk=>+String(pk).split(/[.~]/)[0];
 const isAdmin=()=>!!ME&&ME.role==='admin';
 const FV=()=>firebase.firestore.FieldValue;
@@ -45,7 +45,7 @@ function listen(){
  if(A)U(fs.collection('areas').onSnapshot(s=>{s.docs.forEach(d=>applyArea(d.id,d.data()));postArea()},er));
  else U(areaRef(ME.area).onSnapshot(s=>{if(s.exists)applyArea(s.id,s.data());postArea()},er));
  const fq=A?fs.collection('files'):fs.collection('files').where('area','==',ME.area);
- U(fq.onSnapshot(s=>{items=s.docs.map(d=>{const x={id:d.id,...d.data()};x.cap=x.cap||'';x.blob=BLOBS[x.id];return x});render()},er));
+ U(fq.onSnapshot(s=>{items=s.docs.map(d=>{const x={id:d.id,...d.data()};x.cap=x.cap||'';x.blob=BLOBS[x.id];return x});const ls=legacySig();if(ls!==lastLeg){lastLeg=ls;renderProgs()}render()},er));
  const mq=A?fs.collection('members'):fs.collection('members').where('area','==',ME.area);
  U(mq.onSnapshot(s=>{mems=s.docs.map(d=>{const x={id:d.id,...d.data()};x.blob=x.photo?dataToBlob(x.photo):null;return x});renderMembers()},er));
  if(A)U(fs.collection('marks').onSnapshot(s=>{s.docs.forEach(d=>{MK[+d.id]=d.data().m||{}});refreshMarks()},er));
@@ -116,11 +116,15 @@ function initMem(){document.querySelectorAll('.madd').forEach(f=>{const n=+f.dat
 
 /* ================= ව්‍යුහය ගොඩනැගීම ================= */
 const mkIn=(a,k,f,attr)=>`<input class="mkin ${f==='t'?'ant':'amk'}" data-a="${a}" data-k="${k}" data-f="${f}" ${attr}>`;
+const mkBarI=(a,k)=>`<div class="adm"><b>🛡️ ලකුණු</b>${mkIn(a,k,'o','type="number" min="0" max="6" step="0.5" placeholder="0–6"')}<span>/ ${DEF_MAX}</span><span class="apc" data-pc="${k}"></span>${mkIn(a,k,'t','placeholder="සටහන (අවශ්‍ය නම්)"')}</div>`;
+function critHTML(a,t,k){const ind=IND[k],sum=`<summary><span class="kn">${k}</span><span class="kt">${t}</span><span class="kc" id="c${k}">0</span></summary>`;
+ if(!ind)return `<details class="crit" id="k${k}">${sum}${isAdmin()?mkBar(a.n,k):`<div class="mkview" id="mv${k}" hidden></div>`}<div id="pl${k}"></div><div class="addrow"><button class="addprog" data-k="${k}">➕ වැඩසටහනක් එක් කරන්න</button></div></details>`;
+ return `<details class="crit" id="k${k}">${sum}<div class="mkview" id="mv${k}" hidden></div><div id="pl${k}"></div>`+ind.map(i=>`<details class="crit ind" id="k${i.id}"><summary><span class="kn">${i.id}</span><span class="kt"><img class="indimg" src="${i.img}" alt="${i.id}"></span><span class="kc" id="c${i.id}">0</span></summary>${isAdmin()?mkBarI(a.n,i.id):`<div class="mkview" id="mv${i.id}" hidden></div>`}<div id="pl${i.id}"></div><div class="addrow"><button class="addprog" data-k="${i.id}">➕ වැඩසටහනක් එක් කරන්න</button></div></details>`).join('')+`</details>`}
 const mkBar=(a,k)=>`<div class="adm"><b>🛡️ ලකුණු</b>${mkIn(a,k,'o','type="number" min="0" step="0.5" placeholder="ලබාගත්"')}<span>/</span>${mkIn(a,k,'x','type="number" min="1" step="0.5" placeholder="6"')}<span class="apc" data-pc="${k}"></span>${mkIn(a,k,'t','placeholder="ඇඩ්මින් සටහන (අවශ්‍ය නම්)"')}</div>`;
 function sectionHTML(a){return `<section id="a${a.n}" style="--c:${a.c};--c2:${a.c2}">
   <div class="head"><div class="num">${a.ic}</div><h2>${a.n}. ${a.name}</h2><span class="cnt" id="c${a.n}">0</span></div><div class="aprog"><span>📈 ප්‍රගතිය</span><div class="pbar"><i id="pb${a.n}"></i></div><b id="pt${a.n}"></b><span class="pill" id="am${a.n}" hidden></span></div>
   <div class="body"><div class="pdfbar"><button class="pdfbtn" data-a="${a.n}" style="--c:${a.c}">📄 මෙම ප්‍රමිතිය PDF කරන්න</button><button class="pdfbtn" data-p="${a.n}" style="--c:#d24726">📊 මෙම ප්‍රමිතිය PPT කරන්න</button></div><div class="two"><div class="std"><h4>📌 ප්‍රමිති</h4>${a.std.map((s,i)=>`<div><b>${i+1}.</b> ${s}</div>`).join('')}</div><div class="std req"><h4>📋 අවශ්‍යතා</h4>${REQ[a.n].map((s,i)=>`<div><b>${i+1}.</b> ${s}</div>`).join('')}</div></div><h4 class="ch">👥 සාමාජිකයන් (කණ්ඩායම)</h4><div class="mems" id="mem${a.n}"></div><div class="madd" data-a="${a.n}"><label class="mph" title="ඡායාරූපය තෝරන්න"><input type="file" accept="image/*" hidden class="mfile"><span class="mpv">📷</span></label><input class="mname" placeholder="නම"><input class="mrole" placeholder="තනතුර / භූමිකාව"><button class="btn mbtn">＋ සාමාජිකයෙකු එක් කරන්න</button></div><h4 class="ch">✅ නිර්ණායක – සාක්ෂි / ගොනු එක් කරන්න</h4>
-  <div class="sub" style="font-weight:700;margin:6px 0 2px">📌 උපමාතෘකා – ඒ ඒ යටතේ වැඩසටහන් එක් කර, වැඩසටහනට පින්තූර එක් කරන්න</div>${CRIT[a.n].map((t,i)=>{const k=a.n+'.'+(i+1);return `<details class="crit" id="k${k}"><summary><span class="kn">${k}</span><span class="kt">${t}</span><span class="kc" id="c${k}">0</span></summary>${isAdmin()?mkBar(a.n,k):`<div class="mkview" id="mv${k}" hidden></div>`}<div id="pl${k}"></div><div class="addrow"><button class="addprog" data-k="${k}">➕ වැඩසටහනක් එක් කරන්න</button></div></details>`}).join('')}
+  <div class="sub" style="font-weight:700;margin:6px 0 2px">📌 උපමාතෘකා – ඒ ඒ යටතේ වැඩසටහන් එක් කර, වැඩසටහනට පින්තූර එක් කරන්න</div>${CRIT[a.n].map((t,i)=>critHTML(a,t,a.n+'.'+(i+1))).join('')}
   </div></section>`}
 function build(){
  const AV=visAreas();
@@ -134,8 +138,10 @@ function build(){
 
 /* ---------- වැඩසටහන් (උපමාතෘකා) ---------- */
 const getP=k=>PR[k]&&PR[k].length?PR[k]:[k];
+const hasLegacy=k=>items.some(x=>String(x.pk)===k||String(x.pk).startsWith(k+'~'))||!!(PR[k]&&PR[k].length>1);
+const legacySig=()=>Object.keys(IND).filter(hasLegacy).join(',');
 function progBlock(k,pk,i,n){return `<div class="prog"><div class="ph"><b>📋 වැඩසටහන ${i+1}</b><span class="kc" id="pc${pk}">0</span>${n>1?`<button class="dp" onclick="delProg('${k}','${pk}')">🗑️ ඉවත් කරන්න</button>`:''}</div>${infoHTML(pk)}<div class="slots" id="g${pk}"></div><div class="addrow"><button class="more" data-k="${pk}">＋ තවත් කොටු 5ක් එක් කරන්න</button></div></div>`}
-function renderProgs(){visAreas().forEach(a=>CRIT[a.n].forEach((_,ci)=>{const k=a.n+'.'+(ci+1),l=getP(k),el=document.getElementById('pl'+k);if(el)el.innerHTML=l.map((pk,i)=>progBlock(k,pk,i,l.length)).join('')}));bindInfo();
+function renderProgs(){visAreas().forEach(a=>CRIT[a.n].forEach((_,ci)=>{const k=a.n+'.'+(ci+1);[k].concat(IND[k]?IND[k].map(i=>i.id):[]).forEach(u=>{const l=getP(u),el=document.getElementById('pl'+u);if(!el)return;el.innerHTML=(u===k&&IND[k]&&!hasLegacy(k))?'':l.map((pk,i)=>progBlock(u,pk,i,l.length)).join('')})}));bindInfo();
  document.querySelectorAll('.more').forEach(b=>b.onclick=()=>{const k=b.dataset.k;SL[k]=nSlots(k)+5;saveSL(k);render()})}
 async function delProg(k,pk){if(!confirm('මෙම වැඩසටහන සහ එහි පින්තූර ඉවත් කරන්නද?'))return;
  const gone=items.filter(i=>i.pk===pk);
@@ -166,12 +172,12 @@ let rT=0;
 function render(){cancelAnimationFrame(rT);rT=requestAnimationFrame(doRender)}
 function doRender(){
  if(!ME)return;
- visAreas().forEach(a=>{let tot=0;CRIT[a.n].forEach((_,ci)=>{const k=a.n+'.'+(ci+1);let ck=0;
-  getP(k).forEach(pk=>{const list=items.filter(x=>x.pk===pk),ups=Object.values(UP).filter(x=>x.pk===pk);
-   ck+=list.length;const n=Math.max(nSlots(pk),...list.map(x=>x.slot+1),...ups.map(x=>x.slot+1));let h='';
+ visAreas().forEach(a=>{let tot=0;CRIT[a.n].forEach((_,ci)=>{const k=a.n+'.'+(ci+1);
+  [k].concat(IND[k]?IND[k].map(i=>i.id):[]).forEach(u=>{getP(u).forEach(pk=>{const list=items.filter(x=>x.pk===pk),ups=Object.values(UP).filter(x=>x.pk===pk);
+   const n=Math.max(nSlots(pk),...list.map(x=>x.slot+1),...ups.map(x=>x.slot+1));let h='';
    for(let i=0;i<n;i++){const it=list.find(x=>x.slot===i),up=ups.find(x=>x.slot===i);h+=it?full(it):up?upSlot(up):`<div class="slot empty" data-k="${pk}" data-i="${i}"><span class="plus">＋</span><small>${i+1}</small></div>`}
-   const g=document.getElementById('g'+pk);if(g)g.innerHTML=h;const pc=document.getElementById('pc'+pk);if(pc)pc.textContent=list.length+' / '+n});
-  tot+=ck;const ce=document.getElementById('c'+k);if(ce)ce.textContent=ck});
+   const g=document.getElementById('g'+pk);if(g)g.innerHTML=h;const pc=document.getElementById('pc'+pk);if(pc)pc.textContent=list.length+' / '+n});const ue=document.getElementById('c'+u);if(ue)ue.textContent=items.filter(x=>inCrit(String(x.pk),u)).length});
+  tot+=items.filter(x=>inCrit(String(x.pk),k)).length});
   const ca=$('#c'+a.n);if(ca)ca.textContent=tot+' ගොනු'});
  document.querySelectorAll('.slot.empty').forEach(el=>{
   el.onclick=()=>{pickK=el.dataset.k;pickI=+el.dataset.i;$('#fpick').click()};
@@ -180,12 +186,14 @@ function doRender(){
  const c=k=>items.filter(i=>i.kind===k).length;
  $('#tot').textContent='ගොනු '+items.length;$('#img').textContent='🖼️ '+c('img');$('#vid').textContent='🎬 '+c('vid');$('#doc').textContent='📄 '+c('doc');progress()}
 function progress(){let all=0,tot=0;
- visAreas().forEach(a=>{let d=0;const n=CRIT[a.n].length;tot+=n;
-  CRIT[a.n].forEach((_,i)=>{const k=a.n+'.'+(i+1),has=items.some(x=>x.pk===k||String(x.pk).startsWith(k+'~'));if(has)d++;const e=document.getElementById('k'+k);if(e)e.classList.toggle('done',has)});
-  all+=d;const p=Math.round(d/n*100);
+ visAreas().forEach(a=>{let d=0,n=0;
+  CRIT[a.n].forEach((_,i)=>{const k=a.n+'.'+(i+1),us=unitKeys(k);let ok=0;
+   us.forEach(u=>{const has=items.some(x=>inCrit(String(x.pk),u));n++;if(has){ok++;d++}if(u!==k){const ue=document.getElementById('k'+u);if(ue)ue.classList.toggle('done',has)}});
+   const e=document.getElementById('k'+k);if(e)e.classList.toggle('done',IND[k]?ok===us.length:ok>0)});
+  tot+=n;all+=d;const p=n?Math.round(d/n*100):0;
   const pb=document.getElementById('pb'+a.n);if(pb)pb.style.width=p+'%';const pt=document.getElementById('pt'+a.n);if(pt)pt.textContent=d+' / '+n+' · '+p+'%';
   const nv=document.querySelector('nav a[href="#a'+a.n+'"] .pc');if(nv)nv.textContent=p+'%'});
- const p=tot?Math.round(all/tot*100):0;$('#opb').style.width=p+'%';$('#opt').textContent='සාක්ෂි එක් කර ඇති නිර්ණායක '+all+' / '+tot+' ('+p+'%)';
+ const p=tot?Math.round(all/tot*100):0;$('#opb').style.width=p+'%';$('#opt').textContent='සාක්ෂි එක් කර ඇති දර්ශක / නිර්ණායක '+all+' / '+tot+' ('+p+'%)';
  if(typeof renderAdmin==='function'&&isAdmin())renderAdmin(true)}
 
 /* ---------- පිටු මාරුව ---------- */
@@ -233,6 +241,6 @@ function startApp(){
  build();initInfo();pages();initMem();bindSchool();if(typeof addSheets==='function')addSheets();
  document.body.classList.remove('boot');$('#app').hidden=false;listen()}
 function stopApp(){
- unsubs.forEach(u=>{try{u()}catch(e){}});unsubs=[];ME=null;VIS=[];items=[];mems=[];PR={};INFO={};SL={};MK={};UP={};PEND={};lastSig='';LOGO='';
+ unsubs.forEach(u=>{try{u()}catch(e){}});unsubs=[];ME=null;VIS=[];items=[];mems=[];PR={};INFO={};SL={};MK={};UP={};PEND={};lastSig='';lastLeg='';LOGO='';
  $('#areas').innerHTML='';$('#admin').innerHTML='';$('#nav').innerHTML='';$('#app').hidden=true;$('#sname').value='';
  if(typeof stopAdmin==='function')stopAdmin()}
