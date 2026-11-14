@@ -298,3 +298,9 @@ body.boot #app,body.boot .authwrap{display:none}
 #admin .indimg{max-width:520px}
 #admin tr.cr td{background:var(--bg);font-weight:700}
 @media print{.pp-timg{display:block;max-width:150mm;height:auto;margin-top:1mm;font-weight:400}.pp-ch>span:last-child{flex:1}}
+
+/* දර්ශක (පෙළ) – ක්ෂේත්‍ර 1 සහ 2 */
+.indtxt{display:block;font-size:14px;line-height:1.55;font-weight:600;text-align:left}
+.indtxt b{color:var(--c)}
+.more+.more{margin-left:6px}
+#admin .indtxt{font-weight:500;max-width:560px}
