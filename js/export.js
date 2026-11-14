@@ -5,10 +5,10 @@ const PU=b=>{const u=URL.createObjectURL(b);pUrls.push(u);return u};
 const fdate=s=>{const p=(s||'').split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:''};
 const fico=i=>/pdf/i.test(i.type)?'📕':/sheet|excel|csv/i.test(i.type)?'📊':/word|document/i.test(i.type)?'📝':i.kind==='vid'?'🎬':'📄';
 function areaStat(a){
- const rows=[];CRIT[a.n].forEach((t,i)=>{const k=a.n+'.'+(i+1),ind=IND[k],us=ind?(hasLegacy(k)?[{u:k}]:[]).concat(ind.map(x=>({u:x.id,img:x.img,w:x.w,h:x.h}))):[{u:k}];
+ const rows=[];CRIT[a.n].forEach((t,i)=>{const k=a.n+'.'+(i+1),ind=IND[k],us=ind?(hasLegacy(k)?[{u:k}]:[]).concat(ind.map(x=>({u:x.id,img:x.img,w:x.w,h:x.h,tx:x.txt?((x.lab||'')+' '+x.txt).trim():''}))):[{u:k}];
   us.forEach(un=>{const l=getP(un.u);l.forEach((pk,j)=>{const list=items.filter(x=>x.pk===pk).sort((x,y)=>(x.slot||0)-(y.slot||0)),inf=INFO[pk]||{};
-   if(un.img&&!list.length&&!(inf.t||'').trim()&&!inf.d)return;
-   rows.push({k:un.u,ck:k,ct:t,t,img:un.img||'',iw:un.w,ih:un.h,pl:l.length>1?'වැඩසටහන '+(j+1):'',inf,list})})})});
+   if((un.img||un.tx)&&!list.length&&!(inf.t||'').trim()&&!inf.d)return;
+   rows.push({k:un.u,ck:k,ct:t,t:un.tx||t,tx:un.tx||'',img:un.img||'',iw:un.w,ih:un.h,pl:l.length>1?'වැඩසටහන '+(j+1):'',inf,list})})})});
  return{rows,nc:CRIT[a.n].length,done:new Set(rows.filter(r=>r.list.length).map(r=>r.ck)).size,files:rows.reduce((n,r)=>n+r.list.length,0),ms:mems.filter(m=>m.area===a.n).sort((x,y)=>x.ts-y.ts)}}
 function schSize(n){return n<=28?19:n<=42?16:n<=60?13.5:11.5}
 function coverHTML(o){
@@ -26,7 +26,7 @@ function areaPDF(a,sn,td,yr){
  let lastCk='';const crit=st.rows.map(r=>{
   const d=fdate(r.inf.d),t=(r.inf.t||'').trim();
   const figs=r.list.map(i=>{const cap=esc(i.cap||'');return i.kind==='img'?`<figure class="pp-fig"><img src="${IMGD[i.id]||(i.blob?PU(i.blob):esc(i.url))}" alt=""><figcaption>${cap}</figcaption></figure>`:`<figure class="pp-fig"><div class="pp-fl">${fico(i)}</div><figcaption>${cap}${cap?' · ':''}${esc(i.name)}</figcaption></figure>`}).join('');
-  const hd=(r.img&&r.ck!==lastCk)?`<div class="pp-h">${r.ck}. ${esc(r.ct)}</div>`:'';lastCk=r.ck;
+  const hd=((r.img||r.tx)&&r.ck!==lastCk)?`<div class="pp-h">${r.ck}. ${esc(r.ct)}</div>`:'';lastCk=r.ck;
   return `${hd}<div class="pp-crit"><div class="pp-ch"><span class="pp-kn">${r.k}</span><span>${r.img?`<img class="pp-timg" src="${r.img}" alt="">`:esc(r.t)}${r.pl?' – '+r.pl:''}</span></div><div class="pp-info"><div><b>📅 දිනය:</b> ${d||'—'}</div><div><b>📝 වැඩසටහන / සිද්ධිය:</b> <span class="pp-desc">${t?esc(t):'—'}</span></div></div>${figs?`<div class="pp-grid">${figs}</div>`:'<div class="pp-none">මෙම නිර්ණායකය සඳහා සාක්ෂි ගොනු එක් කර නැත</div>'}</div>`}).join('');
  const body=`<div class="pp-body" style="${cv}"><div class="pp-ah">${a.ic} ${a.n}. ${esc(a.name)}</div><div class="pp-h">📌 ප්‍රමිති</div>${a.std.map((x,i)=>`<div class="pp-li"><b>${i+1}.</b> ${esc(x)}</div>`).join('')}<div class="pp-h">📋 අවශ්‍යතා / විස්තර</div>${REQ[a.n].map((x,i)=>`<div class="pp-li"><b>${i+1}.</b> ${esc(x)}</div>`).join('')}<div class="pp-h">👥 සාමාජිකයන් (කණ්ඩායම)</div>${mem}<div class="pp-h">✅ නිර්ණායක අනුව සාක්ෂි</div>${crit}</div>`;
  return cover+wrapT(body,footHTML(sn,a.n+'. '+esc(a.name)))+(typeof sheetsHTML==='function'?sheetsHTML(a.n):'')}

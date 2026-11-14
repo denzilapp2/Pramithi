@@ -62,7 +62,8 @@ function flushInfo(pk,stamp){(flushers[pk]=flushers[pk]||later((p,s)=>{
   areaRef(areaOf(p)).set({info:{[enc(p)]:{d:(INFO[p]||{}).d||'',t:(INFO[p]||{}).t||''}}},{merge:true}).then(()=>{if(PEND[p]===s)delete PEND[p]}).catch(fail)},700))(pk,stamp)}
 
 /* ================= ගොනු එක් කිරීම / ඉවත් කිරීම ================= */
-const nSlots=k=>Math.max(10,SL[k]||10);
+const SLOT_DEF=5;   // එක් වැඩසටහනකට පෙරනිමි ගොනු කොටු ගණන (අවශ්‍ය නම් එකතු කළ හැක)
+const nSlots=k=>Math.max(SLOT_DEF,SL[k]||SLOT_DEF);
 function freeSlot(k,from){const u=new Set(items.filter(x=>x.pk===k).map(x=>x.slot).concat(Object.values(UP).filter(x=>x.pk===k).map(x=>x.slot)));let s=from;while(u.has(s))s++;return s}
 let pickK=null,pickI=0;
 async function fill(k,i,files){
@@ -115,16 +116,18 @@ function initMem(){document.querySelectorAll('.madd').forEach(f=>{const n=+f.dat
   f.querySelector('.mname').value='';f.querySelector('.mrole').value='';ph=null;fi.value='';pv.textContent='📷'}})}
 
 /* ================= ව්‍යුහය ගොඩනැගීම ================= */
+/* දර්ශකය පෙන්වීම: පින්තූරය (3–8) හෝ පෙළ (1–2) */
+function indHTML(i){return i.img?`<img class="indimg" src="${i.img}" alt="${i.id}">`:`<span class="indtxt">${i.lab?`<b>${esc(i.lab)}</b> `:''}${esc(i.txt||'')}</span>`}
 const mkIn=(a,k,f,attr)=>`<input class="mkin ${f==='t'?'ant':'amk'}" data-a="${a}" data-k="${k}" data-f="${f}" ${attr}>`;
 const mkBarI=(a,k)=>`<div class="adm"><b>🛡️ ලකුණු</b>${mkIn(a,k,'o','type="number" min="0" max="6" step="0.5" placeholder="0–6"')}<span>/ ${DEF_MAX}</span><span class="apc" data-pc="${k}"></span>${mkIn(a,k,'t','placeholder="සටහන (අවශ්‍ය නම්)"')}</div>`;
 function critHTML(a,t,k){const ind=IND[k],sum=`<summary><span class="kn">${k}</span><span class="kt">${t}</span><span class="kc" id="c${k}">0</span></summary>`;
  if(!ind)return `<details class="crit" id="k${k}">${sum}${isAdmin()?mkBar(a.n,k):`<div class="mkview" id="mv${k}" hidden></div>`}<div id="pl${k}"></div><div class="addrow"><button class="addprog" data-k="${k}">➕ වැඩසටහනක් එක් කරන්න</button></div></details>`;
- return `<details class="crit" id="k${k}">${sum}<div class="mkview" id="mv${k}" hidden></div><div id="pl${k}"></div>`+ind.map(i=>`<details class="crit ind" id="k${i.id}"><summary><span class="kn">${i.id}</span><span class="kt"><img class="indimg" src="${i.img}" alt="${i.id}"></span><span class="kc" id="c${i.id}">0</span></summary>${isAdmin()?mkBarI(a.n,i.id):`<div class="mkview" id="mv${i.id}" hidden></div>`}<div id="pl${i.id}"></div><div class="addrow"><button class="addprog" data-k="${i.id}">➕ වැඩසටහනක් එක් කරන්න</button></div></details>`).join('')+`</details>`}
+ return `<details class="crit" id="k${k}">${sum}<div class="mkview" id="mv${k}" hidden></div><div id="pl${k}"></div>`+ind.map(i=>`<details class="crit ind" id="k${i.id}"><summary><span class="kn">${i.id}</span><span class="kt">${indHTML(i)}</span><span class="kc" id="c${i.id}">0</span></summary>${isAdmin()?mkBarI(a.n,i.id):`<div class="mkview" id="mv${i.id}" hidden></div>`}<div id="pl${i.id}"></div><div class="addrow"><button class="addprog" data-k="${i.id}">➕ වැඩසටහනක් එක් කරන්න</button></div></details>`).join('')+`</details>`}
 const mkBar=(a,k)=>`<div class="adm"><b>🛡️ ලකුණු</b>${mkIn(a,k,'o','type="number" min="0" step="0.5" placeholder="ලබාගත්"')}<span>/</span>${mkIn(a,k,'x','type="number" min="1" step="0.5" placeholder="6"')}<span class="apc" data-pc="${k}"></span>${mkIn(a,k,'t','placeholder="ඇඩ්මින් සටහන (අවශ්‍ය නම්)"')}</div>`;
 function sectionHTML(a){return `<section id="a${a.n}" style="--c:${a.c};--c2:${a.c2}">
   <div class="head"><div class="num">${a.ic}</div><h2>${a.n}. ${a.name}</h2><span class="cnt" id="c${a.n}">0</span></div><div class="aprog"><span>📈 ප්‍රගතිය</span><div class="pbar"><i id="pb${a.n}"></i></div><b id="pt${a.n}"></b><span class="pill" id="am${a.n}" hidden></span></div>
   <div class="body"><div class="pdfbar"><button class="pdfbtn" data-a="${a.n}" style="--c:${a.c}">📄 මෙම ප්‍රමිතිය PDF කරන්න</button><button class="pdfbtn" data-p="${a.n}" style="--c:#d24726">📊 මෙම ප්‍රමිතිය PPT කරන්න</button></div><div class="two"><div class="std"><h4>📌 ප්‍රමිති</h4>${a.std.map((s,i)=>`<div><b>${i+1}.</b> ${s}</div>`).join('')}</div><div class="std req"><h4>📋 අවශ්‍යතා</h4>${REQ[a.n].map((s,i)=>`<div><b>${i+1}.</b> ${s}</div>`).join('')}</div></div><h4 class="ch">👥 සාමාජිකයන් (කණ්ඩායම)</h4><div class="mems" id="mem${a.n}"></div><div class="madd" data-a="${a.n}"><label class="mph" title="ඡායාරූපය තෝරන්න"><input type="file" accept="image/*" hidden class="mfile"><span class="mpv">📷</span></label><input class="mname" placeholder="නම"><input class="mrole" placeholder="තනතුර / භූමිකාව"><button class="btn mbtn">＋ සාමාජිකයෙකු එක් කරන්න</button></div><h4 class="ch">✅ නිර්ණායක – සාක්ෂි / ගොනු එක් කරන්න</h4>
-  <div class="sub" style="font-weight:700;margin:6px 0 2px">📌 උපමාතෘකා – ඒ ඒ යටතේ වැඩසටහන් එක් කර, වැඩසටහනට පින්තූර එක් කරන්න</div>${CRIT[a.n].map((t,i)=>critHTML(a,t,a.n+'.'+(i+1))).join('')}
+  <div class="sub" style="font-weight:700;margin:6px 0 2px">📌 නිර්ණායක → දර්ශක – ඒ ඒ දර්ශකය යටතේ සාක්ෂි (පින්තූර / ගොනු 5ක් බැගින්) එක් කරන්න; අවශ්‍ය නම් කොටු හෝ වැඩසටහන් වැඩි කරන්න</div>${CRIT[a.n].map((t,i)=>critHTML(a,t,a.n+'.'+(i+1))).join('')}
   </div></section>`}
 function build(){
  const AV=visAreas();
@@ -140,9 +143,9 @@ function build(){
 const getP=k=>PR[k]&&PR[k].length?PR[k]:[k];
 const hasLegacy=k=>items.some(x=>String(x.pk)===k||String(x.pk).startsWith(k+'~'))||!!(PR[k]&&PR[k].length>1);
 const legacySig=()=>Object.keys(IND).filter(hasLegacy).join(',');
-function progBlock(k,pk,i,n){return `<div class="prog"><div class="ph"><b>📋 වැඩසටහන ${i+1}</b><span class="kc" id="pc${pk}">0</span>${n>1?`<button class="dp" onclick="delProg('${k}','${pk}')">🗑️ ඉවත් කරන්න</button>`:''}</div>${infoHTML(pk)}<div class="slots" id="g${pk}"></div><div class="addrow"><button class="more" data-k="${pk}">＋ තවත් කොටු 5ක් එක් කරන්න</button></div></div>`}
+function progBlock(k,pk,i,n){return `<div class="prog"><div class="ph"><b>📋 වැඩසටහන ${i+1}</b><span class="kc" id="pc${pk}">0</span>${n>1?`<button class="dp" onclick="delProg('${k}','${pk}')">🗑️ ඉවත් කරන්න</button>`:''}</div>${infoHTML(pk)}<div class="slots" id="g${pk}"></div><div class="addrow"><button class="more" data-k="${pk}" data-n="5">＋ තවත් කොටු 5ක්</button><button class="more" data-k="${pk}" data-n="1">＋ කොටුවක්</button></div></div>`}
 function renderProgs(){visAreas().forEach(a=>CRIT[a.n].forEach((_,ci)=>{const k=a.n+'.'+(ci+1);[k].concat(IND[k]?IND[k].map(i=>i.id):[]).forEach(u=>{const l=getP(u),el=document.getElementById('pl'+u);if(!el)return;el.innerHTML=(u===k&&IND[k]&&!hasLegacy(k))?'':l.map((pk,i)=>progBlock(u,pk,i,l.length)).join('')})}));bindInfo();
- document.querySelectorAll('.more').forEach(b=>b.onclick=()=>{const k=b.dataset.k;SL[k]=nSlots(k)+5;saveSL(k);render()})}
+ document.querySelectorAll('.more').forEach(b=>b.onclick=()=>{const k=b.dataset.k;SL[k]=nSlots(k)+(+b.dataset.n||5);saveSL(k);render()})}
 async function delProg(k,pk){if(!confirm('මෙම වැඩසටහන සහ එහි පින්තූර ඉවත් කරන්නද?'))return;
  const gone=items.filter(i=>i.pk===pk);
  try{await Promise.all(gone.map(g=>fs.collection('files').doc(g.id).delete().then(()=>{if(g.driveId)driveCall({action:'delete',id:g.driveId}).catch(()=>{})})));
