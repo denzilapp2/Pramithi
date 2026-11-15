@@ -125,7 +125,7 @@ async function makePPT(ns){
    const d=fdate(r.inf.d),t=(r.inf.t||'').trim();
    for(const [ci,part] of ch.entries()){
     const ii=!!r.img,ttl=ii?r.ck+'   '+r.ct:r.k+'   '+r.t;
-    s=light(a.c,a.c2,ttl+(r.pl?' – '+r.pl:'')+(ch.length>1?`  (${ci+1}/${ch.length})`:''),ttl.length<=45?26:ttl.length<=80?20:16);
+    s=light(a.c,a.c2,ttl+(r.pl?' – '+r.pl:'')+(ch.length>1?`  (${ci+1}/${ch.length})`:''),ttl.length<=45?26:ttl.length<=80?20:ttl.length<=160?15:12);
     if(ii){const q=pfit(.6,1.12,12.1,.75,r.iw,r.ih);s.addImage({data:r.img.slice(5),x:q.x,y:q.y,w:q.w,h:q.h})}
     T(s,'📅 දිනය: '+(d||'—'),{x:.6,y:ii?1.95:1.22,w:ii?3:12.1,h:.35,fontSize:14,bold:true,color:hex(a.c)});
     T(s,'📝 වැඩසටහන / සිද්ධිය: '+(t||'—'),{x:ii?3.7:.6,y:ii?1.9:1.6,w:ii?9:12.1,h:ii?.55:.75,fontSize:t.length>170?11:t.length>90?12.5:14,color:'2B2A33',valign:'top'});
