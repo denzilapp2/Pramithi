@@ -15,6 +15,18 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ගුරු පුවරුව">
+<style>
+.apptools{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+.atbtn{border:0;border-radius:999px;padding:8px 16px;font:600 14px inherit;font-family:inherit;cursor:pointer;background:#fff;color:#0a34aa;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.atbtn[hidden]{display:none}
+.qrback{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px}
+.qrback[hidden]{display:none}
+.qrbox{background:#fff;color:#222;border-radius:16px;padding:20px;max-width:320px;width:100%;text-align:center}
+.qrbox h3{margin:0 0 12px}
+#qrImg{display:flex;justify-content:center;padding:10px;background:#fff}
+.qrurl{font-size:12px;word-break:break-all;margin:10px 0;color:#555}
+.qrbox .atbtn{background:#0a34aa;color:#fff;margin:4px}
+</style>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="boot">
@@ -58,6 +70,7 @@
   <h1>👩‍🏫 ගුරු පුවරුව – පාසල් අධ්‍යාපනයේ ගුණාත්මක තහවුරු කිරීම</h1>
   <p id="hsub">ඇගයීම් ක්ෂේත්‍ර 8 යටතේ – ප්‍රමිති සඳහා සාක්ෂි (පින්තූර · වීඩියෝ · ලේඛන) එක් කරන්න</p>
   <div class="stats"><span class="stat" id="tot">ගොනු 0</span><span class="stat" id="img">🖼️ 0</span><span class="stat" id="vid">🎬 0</span><span class="stat" id="doc">📄 0</span></div><div class="oprog"><div class="obar"><i id="opb"></i></div><div id="opt"></div></div>
+<div class="apptools"><button class="atbtn" id="btnInstall" type="button" hidden>📲 App එක Install කරන්න</button><button class="atbtn" id="btnQR" type="button">🔳 QR Code</button></div>
 </header>
 <nav id="nav"></nav>
 <main>
@@ -68,6 +81,7 @@
 </main>
 <footer class="cr">Created by <b style="color:#276CF5">NEXORA</b> <b style="color:#09B041">TECHNOLOGIES</b><br><i>Building the Future, Digitally</i><br>WhatsApp 0706562952 · Phone 0716562952 · sudanchamalka@gmail.com</footer>
 </div>
+<div class="qrback" id="qrModal" hidden><div class="qrbox"><h3>QR Code – ස්කෑන් කර විවෘත කරන්න</h3><div id="qrImg"></div><div class="qrurl" id="qrUrl"></div><button class="atbtn" id="qrDl" type="button">⬇️ PNG බාගන්න</button><button class="atbtn" id="qrClose" type="button">වසන්න</button></div></div>
 <div id="printRoot"></div>
 
 <!-- PptxGenJS (PPT සෑදීම) -->
@@ -88,5 +102,39 @@
 <script src="js/admin.js?v=4"></script>
 <script src="js/sheetmarks.js?v=2"></script>
 <script src="js/auth.js?v=4"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i)};
+  var dp=null, btn=$('btnInstall');
+  var standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+  var ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  if(standalone) btn.hidden=true;
+  else if(ios) btn.hidden=false;
+  addEventListener('beforeinstallprompt',function(e){e.preventDefault();dp=e;if(!standalone)btn.hidden=false;});
+  addEventListener('appinstalled',function(){btn.hidden=true;dp=null;});
+  btn.addEventListener('click',function(){
+    if(dp){dp.prompt();dp.userChoice.finally(function(){dp=null;btn.hidden=true;});}
+    else if(ios){alert('iPhone/iPad: Safari හි Share (⬆️) බොත්තම ඔබා “Add to Home Screen” තෝරන්න.');}
+    else{alert('Browser මෙනුවෙන් “Install app” හෝ “Add to Home screen” තෝරන්න.');}
+  });
+  var made=false, url=location.href.split('#')[0].split('?')[0];
+  $('btnQR').addEventListener('click',function(){
+    $('qrModal').hidden=false; $('qrUrl').textContent=url;
+    if(!made){
+      if(typeof QRCode==='undefined'){$('qrImg').textContent='QR library එක load වූයේ නැත (අන්තර්ජාලය පරීක්ෂා කරන්න).';return;}
+      new QRCode($('qrImg'),{text:url,width:240,height:240,correctLevel:QRCode.CorrectLevel.M});
+      made=true;
+    }
+  });
+  $('qrClose').addEventListener('click',function(){$('qrModal').hidden=true;});
+  $('qrModal').addEventListener('click',function(e){if(e.target===this)this.hidden=true;});
+  $('qrDl').addEventListener('click',function(){
+    var c=$('qrImg').querySelector('canvas'), im=$('qrImg').querySelector('img');
+    var href=c?c.toDataURL('image/png'):(im&&im.src); if(!href)return;
+    var a=document.createElement('a');a.href=href;a.download='qr-code.png';a.click();
+  });
+})();
+</script>
 </body>
 </html>
